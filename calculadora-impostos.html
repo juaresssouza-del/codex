@@ -120,6 +120,9 @@
   .more-body { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
   .hint { color: var(--muted); font-size: 0.8rem; margin: 0; }
 
+  .prodtype { margin: 0 0 4px; }
+  .prodtype .hint { margin-top: 6px; }
+  .panel[data-cliente="isento"] .st-only { display: none; }
   .panel:not([data-venda="consumo"]) .metodo-only { display: none; }
 
   /* produtos */
@@ -151,10 +154,11 @@
   .list { display: flex; flex-direction: column; }
   .res { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.6rem auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--panel-line); }
   .res:last-child { border-bottom: 0; }
-  .res[hidden] { display: none; }
   .res .lbl { color: var(--panel-muted); font-size: 0.86rem; }
   .res .pc { font-family: var(--font-num); font-size: 0.76rem; color: var(--panel-muted); white-space: nowrap; }
   .item .res .pc { color: var(--muted); }
+  .res .lbl small { display: block; font-family: var(--font-num); font-size: 0.72rem; opacity: 0.8; }
+  input[readonly] { background: transparent; border-style: dashed; }
   .res output { font-family: var(--font-num); font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
   .cp { font: inherit; font-size: 0.74rem; font-weight: 700; color: var(--panel-ink); background: rgba(255, 255, 255, 0.1); border: 1px solid var(--panel-line); border-radius: 8px; padding: 5px 10px; cursor: pointer; min-width: 68px; }
   .cp:hover { background: rgba(255, 255, 255, 0.18); }
@@ -219,7 +223,7 @@
   <section id="panel-single" role="tabpanel" aria-labelledby="tab-single"></section>
   <section id="panel-multi" role="tabpanel" aria-labelledby="tab-multi" hidden></section>
 
-  <footer>Informe o valor unitário e a quantidade: impostos, frete e ST são calculados sobre o total da linha (unitário × quantidade). Valores de exemplo pré-carregados: substitua pelos da sua negociação. O botão Copiar entrega o número no formato de portal (ex.: 3557,10). O preço de venda já traz PIS, COFINS e ICMS por dentro; IPI e ST são somados por fora. Alíquotas de ICMS vêm de tabelas da internet: confirme com o fiscal antes de emitir.</footer>
+  <footer>Valores de exemplo pré-carregados: substitua pelos da sua negociação. O botão Copiar entrega o número no formato de portal (ex.: 3557,10). O preço de venda já traz PIS, COFINS e ICMS por dentro; IPI e ST são somados por fora. Alíquotas de ICMS vêm de tabelas da internet: confirme com o fiscal antes de emitir.</footer>
 </div>
 
 <script>
@@ -241,6 +245,10 @@
   var NCM_TAB = {
     '83011000': { desc: 'Cadeados', ipi: 0, fonte: 'NF CFOP 6403 sem IPI destacado' }
   };
+  // NCM → UFs em que a nota saiu com ST (CFOP 6403), conferido em NF real.
+  var ST_TAB = {
+    '83011000': { MG: 'NF 6403', RJ: 'NF 6403, Protocolo ICMS 196/2009' }
+  };
   function fmtNcm(d) { d = String(d || '').replace(/\D/g, '').slice(0, 8); return d.length > 6 ? d.slice(0, 4) + '.' + d.slice(4, 6) + '.' + d.slice(6) : d.length > 4 ? d.slice(0, 4) + '.' + d.slice(4) : d; }
   var G12 = ['MG','RJ','RS','SP','SC','PR']; // destinos S/SE (exceto ES): 12% nacional
 
@@ -248,6 +256,14 @@
   function icmsOperacao(origem, uf, unit) {
     if (uf === unit) return UFS[unit].i;
     return origem === 'importado' ? 4 : (G12.indexOf(uf) >= 0 ? 12 : 7);
+  }
+  // ST vai dentro da NF quando o cliente é contribuinte e o produto tem ST no destino (consumo ou revenda).
+  // Tratamento fiscal por produto: isento paga DIFAL (empresa); contribuinte com produto revendido leva ST na NF;
+  // produto industrializado não tem ST (consumo: DIFAL do comprador; revenda: sem ST nem DIFAL).
+  function lineKind(s, it) {
+    if (s.cliente === 'isento') return 'difal-empresa';
+    if (s.st && !it.ind) return 'st';
+    return s.venda === 'consumo' ? 'difal-comprador' : 'nenhum';
   }
   function r2(x) { return Math.round((x + Number.EPSILON) * 100) / 100; }
   function fmt(n) { return isFinite(n) ? n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'; }
@@ -258,15 +274,8 @@
     var n = parseFloat(t);
     return isFinite(n) && n > 0 ? n : 0;
   }
-  // quantidade: aceita decimal (até 3 casas); "1.000" sem vírgula é lido como mil
-  function parseQtd(t) {
-    t = String(t == null ? '' : t).replace(/[^\d.,]/g, '');
-    if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
-    else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
-    var n = parseFloat(t);
-    return isFinite(n) && n > 0 ? Math.round(n * 1000) / 1000 : 0;
-  }
-  function fmtQtd(n) { return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 }); }
+  function qfmt(n) { return String(n).replace('.', ','); }
+  function ufmt(n) { return isFinite(n) ? n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '—'; }
   function pct(n) { return String(n).replace('.', ','); }
   function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
@@ -274,7 +283,7 @@
   function calc(s) {
     var I = s.interna == null ? NaN : s.interna / 100, E = s.inter / 100;
     var sumV = 0, sumNet = 0; s.items.forEach(function (it) { sumV += it.valor; });
-    var frLeft = s.frete, out = { lines: [], sumV: sumV, sumIpi: 0, sumSt: 0, frete: s.frete };
+    var frLeft = s.frete, out = { lines: [], sumV: sumV, sumIpi: 0, sumSt: 0, stNaNota: 0, frete: s.frete };
     s.items.forEach(function (it, k) {
       var last = k === s.items.length - 1;
       var fr = last ? frLeft : r2(sumV > 0 ? s.frete * it.valor / sumV : s.frete / s.items.length);
@@ -282,21 +291,26 @@
       var baseIpi = it.valor + (s.freteBase ? fr : 0);
       var ipi = r2(baseIpi * it.ipi / 100);
       var total0 = it.valor + fr + ipi;
-      var dentro = s.venda === 'revenda' || s.metodo === 'dentro';
+      var kind = lineKind(s, it);
+      var dentro = kind === 'st' || s.metodo === 'dentro';
       var bc = dentro ? total0 / (1 - I) : total0;
       var st = bc * (I - E);
       // base de ST como aparece na NF-e: total × (1 − ICMS operação) ÷ (1 − interna); mesmo ST do cálculo por dentro
-      var bcNf = (s.venda === 'revenda' && dentro) ? total0 * (1 - E) / (1 - I) : bc;
-      st = isFinite(st) ? Math.max(0, r2(st)) : NaN;
-      var icms = r2(it.valor * s.inter / 100), pisV = r2(it.valor * s.pis / 100), cofV = r2(it.valor * s.cofins / 100);
+      var bcNf = (kind === 'st' && dentro) ? total0 * (1 - E) / (1 - I) : bc;
+      st = kind === 'nenhum' ? 0 : isFinite(st) ? Math.max(0, r2(st)) : NaN;
+      // ICMS embutido: no consumo o IPI compõe a base; na revenda não. PIS/COFINS incidem sobre o valor sem ICMS e sem IPI.
+      var icms = r2((it.valor + (s.venda === 'consumo' ? ipi : 0)) * s.inter / 100);
+      var pisBase = it.valor - icms;
+      var pisV = r2(pisBase * s.pis / 100), cofV = r2(pisBase * s.cofins / 100);
       var net = r2(it.valor - icms - pisV - cofV);
-      out.lines.push({ v: it.valor, fr: fr, baseIpi: baseIpi, ipi: ipi, icms: icms, pis: pisV, cofins: cofV, net: net, total0: total0, bc: bcNf, st: st });
-      sumNet += net; out.sumIpi += ipi; out.sumSt += isFinite(st) ? st : 0;
+      out.lines.push({ v: it.valor, fr: fr, baseIpi: baseIpi, ipi: ipi, icms: icms, pis: pisV, cofins: cofV, net: net, total0: total0, bc: bcNf, st: st, kind: kind });
+      sumNet += net; out.sumIpi += ipi; out.sumSt += isFinite(st) ? st : 0; if (kind === 'st') out.stNaNota += isFinite(st) ? st : 0;
     });
     out.sumIpi = r2(out.sumIpi); out.sumSt = r2(out.sumSt);
     out.semImp = r2(sumNet);
     // revenda: ST vai na NF. Consumo: o DIFAL é guia à parte (GNRE) e fica fora do total da NF.
-    out.stNaNota = s.venda === 'revenda' ? out.sumSt : 0;
+    out.stNaNota = r2(out.stNaNota);
+    out.anySt = out.lines.some(function (l) { return l.kind === 'st'; });
     out.totalNF = r2(sumV + out.sumIpi + s.frete + out.stNaNota);
     out.total = out.totalNF;
     out.comImp = r2(sumV + out.sumIpi + out.stNaNota);
@@ -321,11 +335,11 @@
 
   function build(host, id, multi, blank) {
     var s = {
-      cliente: 'contrib', unit: 'PR', pis: 1.67, cofins: 7.6, origem: 'nacional', venda: 'consumo', uf: 'MG', frete: blank ? 0 : (multi ? 280 : 340), freteBase: true,
+      cliente: 'contrib', st: true, unit: 'PR', pis: 1.65, cofins: 7.6, origem: 'nacional', venda: 'consumo', uf: 'MG', frete: blank ? 0 : (multi ? 280 : 340), freteBase: true,
       interna: 18, inter: 12, metodo: 'dentro',
-      items: blank ? [{ nome: 'Produto 1', ncm: '', unit: 0, qtd: 1, valor: 0, ipi: 0 }] : multi
-        ? [{ nome: 'Produto 1', ncm: '', unit: 1200, qtd: 1, valor: 1200, ipi: 6.5 }, { nome: 'Produto 2', ncm: '', unit: 850, qtd: 1, valor: 850, ipi: 5 }, { nome: 'Produto 3', ncm: '', unit: 640, qtd: 1, valor: 640, ipi: 6.5 }]
-        : [{ nome: '', ncm: '', unit: 3000, qtd: 1, valor: 3000, ipi: 6.5 }]
+      items: blank ? [{ nome: 'Produto 1', ncm: '', ind: false, qtd: 1, unit: 0, valor: 0, ipi: 0 }] : multi
+        ? [{ nome: 'Produto 1', ncm: '', ind: false, qtd: 20, unit: 60, valor: 1200, ipi: 6.5 }, { nome: 'Produto 2', ncm: '', ind: false, qtd: 10, unit: 85, valor: 850, ipi: 5 }, { nome: 'Produto 3', ncm: '', ind: false, qtd: 8, unit: 80, valor: 640, ipi: 6.5 }]
+        : [{ nome: '', ncm: '', ind: false, qtd: 10, unit: 300, valor: 3000, ipi: 6.5 }]
     };
     var registry = [];
     var ufOpts = Object.keys(UFS).map(function (u) { return '<option value="' + u + '"' + (u === s.uf ? ' selected' : '') + '>' + u + '</option>'; }).join('');
@@ -348,6 +362,9 @@
               '<fieldset><legend>Tipo de venda</legend><div class="seg">' +
                 '<label><input type="radio" name="' + id + '-venda" value="consumo" checked><span>Consumo</span></label>' +
                 '<label><input type="radio" name="' + id + '-venda" value="revenda"><span>Revenda</span></label></div></fieldset>' +
+              '<fieldset class="st-only"><legend>Há ST neste NCM/UF? (produto revendido)</legend><div class="seg">' +
+                '<label><input type="radio" name="' + id + '-st" value="sim" checked><span>Sim</span></label>' +
+                '<label><input type="radio" name="' + id + '-st" value="nao"><span>Não</span></label></div></fieldset>' +
             '</div>' +
             '<div class="grid">' +
               '<label class="f" for="' + id + '-uf">UF de destino<select id="' + id + '-uf">' + ufOpts + '</select></label>' +
@@ -385,16 +402,17 @@
     var $ = function (q) { return host.querySelector(q); };
     var panel = $('.panel'), elInterna = $('#' + id + '-interna'), elInter = $('#' + id + '-inter'), elMetodo = $('#' + id + '-metodo');
     var itemsHost = $('[data-items]'), resHost = $('[data-results]');
-    var lastCalc = null, subEls = [];
+    var lastCalc = null;
 
-    function resRow(label, get, show, pc) {
+    function resRow(label, get, show, pc, sub) {
       var row = document.createElement('div'); row.className = 'res';
       row.innerHTML = '<span class="lbl"></span><output></output><span class="pc"></span><button class="cp" type="button" data-label="Copiar">Copiar</button>';
       var out = row.querySelector('output'), btn = row.querySelector('button'), lbl = row.querySelector('.lbl'), pcEl = row.querySelector('.pc');
       btn.addEventListener('click', function () { copyText(raw(get(lastCalc)), btn); });
-      registry.push({ out: out, get: get, label: label, lbl: lbl, row: row, show: show, pc: pc, pcEl: pcEl });
+      registry.push({ out: out, get: get, label: label, lbl: lbl, row: row, show: show, pc: pc, pcEl: pcEl, sub: sub });
       return row;
     }
+    function subQtd(it) { return it.qtd !== 1 ? qfmt(it.qtd) + ' × R$ ' + ufmt(it.unit) : ''; }
     // IPI, ICMS, PIS e COFINS, com o percentual no fim da linha
     function taxRows(host, line, k) {
       host.appendChild(resRow('Valor do IPI', function (c) { return line(c).ipi; }, null, function () { return s.items[k].ipi; }));
@@ -402,10 +420,16 @@
       host.appendChild(resRow('Valor do PIS', function (c) { return line(c).pis; }, null, function () { return s.pis; }));
       host.appendChild(resRow('Valor do COFINS', function (c) { return line(c).cofins; }, null, function () { return s.cofins; }));
     }
-    function stLabel(s) { return s.venda === 'revenda' ? 'Valor da ST' : s.cliente === 'isento' ? 'DIFAL pago pela empresa (fora da NF)' : 'DIFAL do comprador (informativo)'; }
-    function totalLabel(s) {
-      if (multi) return s.venda === 'revenda' ? 'Total com frete' : 'Total com frete (sem DIFAL)';
-      return s.venda === 'revenda' ? 'Valor total da nota' : 'Valor total da nota (sem DIFAL)';
+    function stLabelFor(k) {
+      return function (s, c) {
+        var kd = c.lines[k].kind;
+        return kd === 'st' ? 'Valor da ST' : kd === 'difal-empresa' ? 'DIFAL pago pela empresa (fora da NF)' : 'DIFAL do comprador (informativo)';
+      };
+    }
+    function stShowFor(k) { return function (s, c) { return c.lines[k].kind !== 'nenhum'; }; }
+    function totalLabel(s, c) {
+      if (multi) return c.anySt ? 'Total com frete e ST' : 'Total com frete (sem DIFAL)';
+      return c.anySt ? 'Valor total da nota (com ST)' : 'Valor total da nota (sem DIFAL)';
     }
 
     function ncmHint(it, el) {
@@ -415,22 +439,29 @@
     }
 
     function renderItems() {
-      registry = []; subEls = []; itemsHost.innerHTML = ''; resHost.innerHTML = '';
+      registry = []; itemsHost.innerHTML = ''; resHost.innerHTML = '';
       s.items.forEach(function (it, k) {
         var n = k + 1, card = document.createElement('div'); card.className = multi ? 'item' : '';
         card.innerHTML =
           (multi ? '<div class="item-head"><input type="text" aria-label="Descrição do produto ' + n + '" placeholder="Descrição (opcional)"><button class="ghost" type="button" data-rm>Remover</button></div>' : '') +
+          '<fieldset class="prodtype"><legend>Produto da empresa</legend><div class="seg">' +
+            '<label><input type="radio" name="' + id + '-ind' + k + '" value="rev"><span>Revendido</span></label>' +
+            '<label><input type="radio" name="' + id + '-ind' + k + '" value="ind"><span>Industrializado</span></label></div>' +
+            '<p class="hint">Revendido: comprado de terceiros, pode ter ST. Industrializado: fabricado pela empresa, sem ST.</p></fieldset>' +
           '<div class="grid">' +
-            '<label class="f">' + (multi ? 'Valor unitário do produto ' + n : 'Valor unitário') + ' (R$)<input class="num v" type="text" inputmode="decimal"></label>' +
-            '<label class="f">Quantidade<input class="num q" type="text" inputmode="decimal" placeholder="1"></label>' +
+            '<label class="f">Quantidade<input class="num q" type="text" inputmode="decimal"></label>' +
+            '<label class="f">Valor unitário (R$)<input class="num u" type="text" inputmode="decimal"></label>' +
+            '<label class="f">' + (multi ? 'Total do produto ' + n : 'Total do produto') + '<input class="num v" type="text" readonly tabindex="-1" aria-readonly="true"></label>' +
             '<label class="f">NCM<input class="num ncm" type="text" inputmode="numeric" placeholder="0000.00.00"><span class="ncm-hint"></span></label>' +
             '<label class="f">IPI %<input class="num ipi" type="text" inputmode="decimal"></label>' +
-          '</div><p class="hint sub" aria-live="polite"></p>' + (multi ? '<div data-lineres></div>' : '');
-        subEls[k] = card.querySelector('.sub');
-        var q = card.querySelector('.q'), v = card.querySelector('.v'), ipi = card.querySelector('.ipi'), ncm = card.querySelector('.ncm'), hint = card.querySelector('.ncm-hint');
-        q.value = it.qtd ? fmtQtd(it.qtd) : ''; v.value = it.unit ? raw(it.unit) : ''; v.placeholder = '0,00'; ipi.value = it.ipi ? pct(it.ipi) : ''; ipi.placeholder = '0'; ncm.value = fmtNcm(it.ncm); ncmHint(it, hint);
-        v.addEventListener('input', function () { it.unit = parse(v.value); update(); });
-        q.addEventListener('input', function () { it.qtd = parseQtd(q.value); update(); });
+          '</div>' + (multi ? '<div data-lineres></div>' : '');
+        var v = card.querySelector('.v'), q = card.querySelector('.q'), u = card.querySelector('.u'), ipi = card.querySelector('.ipi'), ncm = card.querySelector('.ncm'), hint = card.querySelector('.ncm-hint');
+        q.value = it.qtd ? qfmt(it.qtd) : ''; q.placeholder = '1'; u.value = it.unit ? String(it.unit).replace('.', ',') : ''; u.placeholder = '0,00'; v.value = it.valor ? raw(it.valor) : ''; v.placeholder = '0,00'; ipi.value = it.ipi ? pct(it.ipi) : ''; ipi.placeholder = '0'; ncm.value = fmtNcm(it.ncm); ncmHint(it, hint);
+        card.querySelector('.prodtype input[value="' + (it.ind ? 'ind' : 'rev') + '"]').checked = true;
+        card.querySelectorAll('.prodtype input').forEach(function (r) { r.addEventListener('change', function () { it.ind = r.value === 'ind'; update(); }); });
+        function total() { it.valor = r2(it.qtd * it.unit); v.value = it.valor ? raw(it.valor) : ''; update(); }
+        q.addEventListener('input', function () { it.qtd = parse(q.value); total(); });
+        u.addEventListener('input', function () { it.unit = parse(u.value); total(); });
         ncm.addEventListener('input', function () {
           it.ncm = ncm.value.replace(/\D/g, '').slice(0, 8); ncm.value = fmtNcm(it.ncm);
           var t = NCM_TAB[it.ncm]; if (t) { it.ipi = t.ipi; ipi.value = pct(t.ipi); }
@@ -444,20 +475,18 @@
           rm.disabled = s.items.length < 2; rm.style.opacity = rm.disabled ? '.4' : '1';
           rm.addEventListener('click', function () { s.items.splice(k, 1); renumber(); renderItems(); update(); });
           var lr = card.querySelector('[data-lineres]');
-          lr.appendChild(resRow(function (s) { return s.items[k].qtd !== 1 ? 'Valor do produto ' + n + ' (total da linha)' : 'Valor do produto ' + n; }, function (c) { return c.lines[k].v; }));
-          lr.appendChild(resRow('Valor unitário', function () { return s.items[k].unit; }, function (s) { return s.items[k].qtd !== 1; }));
+          lr.appendChild(resRow('Valor do produto ' + n, function (c) { return c.lines[k].v; }, null, null, function () { return subQtd(s.items[k]); }));
           taxRows(lr, function (c) { return c.lines[k]; }, k);
           lr.appendChild(resRow('Preço NET', function (c) { return c.lines[k].net; }));
-          lr.appendChild(resRow(stLabel, function (c) { return c.lines[k].st; }));
+          lr.appendChild(resRow(stLabelFor(k), function (c) { return c.lines[k].st; }, stShowFor(k)));
         }
         itemsHost.appendChild(card);
       });
       if (!multi) {
-        resHost.appendChild(resRow(function (s) { return s.items[0].qtd !== 1 ? 'Valor do produto (total da linha)' : 'Valor do produto'; }, function (c) { return c.lines[0].v; }));
-        resHost.appendChild(resRow('Valor unitário', function () { return s.items[0].unit; }, function (s) { return s.items[0].qtd !== 1; }));
+        resHost.appendChild(resRow('Valor do produto', function (c) { return c.lines[0].v; }, null, null, function () { return subQtd(s.items[0]); }));
         taxRows(resHost, function (c) { return c.lines[0]; }, 0);
         resHost.appendChild(resRow('Preço NET', function (c) { return c.lines[0].net; }));
-        resHost.appendChild(resRow(stLabel, function (c) { return c.lines[0].st; }));
+        resHost.appendChild(resRow(stLabelFor(0), function (c) { return c.lines[0].st; }, stShowFor(0)));
         resHost.appendChild(resRow('Valor do frete', function (c) { return c.frete; }));
         resHost.appendChild(resRow(totalLabel, function (c) { return c.total; }));
       } else {
@@ -467,7 +496,7 @@
         resHost.appendChild(resRow('Valor dos produtos C/ impostos', function (c) { return c.comImp; }));
         resHost.appendChild(resRow(totalLabel, function (c) { return c.total; }));
         var hint2 = document.createElement('p'); hint2.className = 'hint';
-        hint2.textContent = 'S/ impostos = soma dos preços NET (sem PIS, COFINS e ICMS). C/ impostos = produtos + IPI (+ ST na revenda), sem frete e sem DIFAL. Os valores por produto aparecem em cada item.';
+        hint2.textContent = 'S/ impostos = soma dos preços NET (sem PIS, COFINS e ICMS). C/ impostos = produtos + IPI (+ ST, quando houver), sem frete e sem DIFAL. Os valores por produto aparecem em cada item.';
         resHost.appendChild(hint2);
       }
     }
@@ -485,26 +514,27 @@
 
     function update() {
       s.frete = parse($('#' + id + '-frete').value);
-      panel.dataset.venda = s.venda;
-      s.items.forEach(function (it) { it.valor = r2(it.unit * it.qtd); });
+      panel.dataset.venda = s.venda; panel.dataset.cliente = s.cliente;
       var c = lastCalc = calc(s), d = UFS[s.uf];
-      s.items.forEach(function (it, k) { subEls[k].textContent = !(it.qtd > 0) ? 'Informe a quantidade.' : it.unit > 0 ? 'Subtotal da linha: R$ ' + fmt(it.valor) + ' (' + fmtQtd(it.qtd) + ' × ' + fmt(it.unit) + ')' : ''; });
       registry.forEach(function (r) {
-        r.lbl.textContent = typeof r.label === 'function' ? r.label(s) : r.label;
-        r.row.hidden = r.show ? !r.show(s) : false;
+        r.cur = typeof r.label === 'function' ? r.label(s, c) : r.label;
+        r.subTxt = r.sub ? r.sub() : '';
+        r.lbl.textContent = r.cur;
+        if (r.subTxt) { var sm = document.createElement('small'); sm.textContent = r.subTxt; r.lbl.appendChild(sm); }
+        r.row.hidden = r.show ? !r.show(s, c) : false;
         r.out.textContent = fmt(r.get(c));
         r.pcEl.textContent = r.pc ? '(' + pct(r.pc(s)) + ')%' : '';
       });
-      $('[data-totallbl]').textContent = totalLabel(s); $('[data-total]').textContent = 'R$ ' + fmt(c.total);
-      $('[data-moblbl]').textContent = totalLabel(s); $('[data-mobval]').textContent = 'R$ ' + fmt(c.total);
+      $('[data-totallbl]').textContent = totalLabel(s, c); $('[data-total]').textContent = 'R$ ' + fmt(c.total);
+      $('[data-moblbl]').textContent = totalLabel(s, c); $('[data-mobval]').textContent = 'R$ ' + fmt(c.total);
 
       // rota fiscal
       var cliente = s.cliente === 'isento' ? 'Isento' : 'Contribuinte', venda = s.venda === 'revenda' ? 'Revenda' : 'Consumo';
-      var base = (s.venda === 'revenda' || s.metodo === 'dentro') ? 'Base por dentro' : 'Base normal';
+      var base = (c.anySt || s.metodo === 'dentro') ? 'Base por dentro' : 'Base normal';
       $('[data-route]').innerHTML = '<div class="path"><span class="uf">' + s.unit + '</span>' + ARROW + '<span class="uf">' + s.uf + '</span></div>' +
         '<div class="chips"><span class="chip">' + (s.origem === 'importado' ? 'Importado' : 'Nacional') + ' · ICMS ' + pct(s.inter) + '%</span>' +
         '<span class="chip">' + s.uf + ' interno ' + (s.interna == null ? '—' : pct(s.interna) + '%') + '</span>' +
-        '<span class="chip plain">' + cliente + ' · ' + venda + '</span><span class="chip plain">' + base + '</span></div>';
+        '<span class="chip plain">' + cliente + ' · ' + venda + (c.anySt ? ' · com ST' : '') + '</span><span class="chip plain">' + base + '</span></div>';
 
       // composição do total
       var parts = [{ k: 'Produtos', v: c.sumV, c: 's1' }, { k: 'IPI', v: c.sumIpi, c: 's2' }, { k: 'Frete', v: c.frete, c: 's3' }, { k: 'ST', v: c.stNaNota, c: 's4' }].filter(function (p) { return p.v > 0; });
@@ -516,22 +546,26 @@
       if (s.uf === s.unit) notes.push('Venda dentro de ' + s.uf + ': sem DIFAL/ST. O ICMS interno já está no preço.');
       if (d.p != null && d.p !== d.i) notes.push('ICMS interno de ' + s.uf + ': tabela da internet ' + pct(d.i) + '%, a planilha antiga usava ' + pct(d.p) + '%. Confirme com o fiscal.');
       else if (d.c) notes.push('As fontes divergem sobre o ICMS interno de ' + s.uf + ' (pode incluir fundo de pobreza). Confirme com o fiscal.');
-      var dif = r2(c.sumSt);
+      var dif = r2(c.sumSt), has = function (k) { return c.lines.some(function (l) { return l.kind === k; }); };
       if (s.cliente === 'isento') notes.push('Cliente isento: a empresa paga o DIFAL de ' + s.uf + ' em guia (GNRE) e não repassa ao cliente. Aqui são R$ ' + fmt(dif) + ' (' + fmt(c.totalNF > 0 ? dif / c.totalNF * 100 : 0) + '% do total da NF): considere na margem. O valor vai nos dados adicionais da NF, não no total (CFOP de referência: 6108).');
-      else if (s.venda === 'consumo') notes.push('Contribuinte para consumo: o comprador recolhe o DIFAL. O valor é só informativo e não entra no total da NF.');
-      if (s.venda === 'revenda') notes.push('Revenda sem MVA (CFOP de referência: 6403): ST pela fórmula "por dentro" com MVA 0%, igual à NF conferida. Se o NCM tiver MVA, o ST real é maior.');
+      else {
+        if (has('st')) notes.push('ST dentro da NF (CFOP de referência: 6403), sem MVA, pela fórmula "por dentro", igual às NFs conferidas. Se o NCM tiver MVA, a ST real é maior. Se o NCM não tem ST neste destino, marque "Há ST neste NCM/UF? Não".');
+        if (has('difal-comprador')) notes.push('Sem ST: o DIFAL de ' + s.uf + ' é recolhido pelo comprador (contribuinte para consumo) e fica fora da NF.');
+        if (has('nenhum')) notes.push('Venda para revenda sem ST: não há DIFAL nem ST. A nota leva só o ICMS da operação.');
+        if (s.items.some(function (i) { return i.ind; })) notes.push('Produto industrializado: tratado sem ST. Confirme com a contabilidade se algum NCM seu tem ST neste destino.');
+        if (!s.st) s.items.forEach(function (i) { var t = ST_TAB[i.ncm]; if (t && t[s.uf] && !i.ind) notes.push('NCM ' + fmtNcm(i.ncm) + ' para ' + s.uf + ' já saiu com ST em nota conferida (' + t[s.uf] + '). Confira se deve marcar "Há ST neste NCM/UF? Sim".'); });
+      }
       s.items.forEach(function (i) { var t = NCM_TAB[i.ncm]; if (t) notes.push('NCM ' + fmtNcm(i.ncm) + ' (' + t.desc + '): IPI ' + pct(t.ipi) + '% conforme ' + t.fonte + '.'); else if (i.ncm.length === 8) notes.push('NCM ' + fmtNcm(i.ncm) + ' sem IPI cadastrado: confirme o IPI e digite na mão.'); });
       if (s.interna == null || isNaN(s.interna)) notes.push('Informe o ICMS interno de ' + s.uf + ' para calcular o ST.');
-      if (s.items.some(function (i) { return !(i.qtd > 0); })) notes.push('Informe a quantidade (maior que zero) em todos os produtos.');
       if (s.items.some(function (i) { return i.ipi === 0; })) notes.push('Há produto com IPI 0%. Confirme a alíquota do NCM.');
       $('[data-notes]').innerHTML = notes.map(function (t) { return '<div class="note">' + esc(t) + '</div>'; }).join('');
 
       // memória
-      var head = '<tr><th>Item</th><th>Base IPI</th><th>IPI</th><th>Frete rateado</th><th>Total s/ ST</th><th>Base ST (NF)</th><th>ST</th></tr>';
+      var head = '<tr><th>Item</th><th>Qtd</th><th>Unitário</th><th>Total</th><th>Base IPI</th><th>IPI</th><th>Frete rateado</th><th>Total s/ ST</th><th>Base ST (NF)</th><th>ST</th></tr>';
       var body = c.lines.map(function (l, k) {
-        return '<tr><td>' + (multi ? esc(s.items[k].nome || 'Produto ' + (k + 1)) : 'Produto') + '</td><td>' + fmt(l.baseIpi) + '</td><td>' + fmt(l.ipi) + '</td><td>' + fmt(l.fr) + '</td><td>' + fmt(l.total0) + '</td><td>' + fmt(l.bc) + '</td><td>' + fmt(l.st) + '</td></tr>';
+        return '<tr><td>' + (multi ? esc(s.items[k].nome || 'Produto ' + (k + 1)) : 'Produto') + '</td><td>' + qfmt(s.items[k].qtd) + '</td><td>' + ufmt(s.items[k].unit) + '</td><td>' + fmt(l.v) + '</td><td>' + fmt(l.baseIpi) + '</td><td>' + fmt(l.ipi) + '</td><td>' + fmt(l.fr) + '</td><td>' + fmt(l.total0) + '</td><td>' + fmt(l.bc) + '</td><td>' + fmt(l.st) + '</td></tr>';
       }).join('');
-      var rule = (s.venda === 'revenda' ? 'ST = base ST × interna − total × ICMS da operação; base ST = total × (1 − ICMS da operação) ÷ (1 − interna).' : 'DIFAL = base × (interna − ICMS da operação); base ' + (s.metodo === 'dentro' ? '= total ÷ (1 − interna)' : '= total') + '.') + ' ICMS, PIS e COFINS embutidos = valor do produto (sem frete) × alíquota. Preço NET = valor − ICMS − PIS − COFINS.';
+      var rule = (c.anySt ? 'ST = base ST × interna − total × ICMS da operação; base ST = total × (1 − ICMS da operação) ÷ (1 − interna).' : 'DIFAL = base × (interna − ICMS da operação); base ' + (s.metodo === 'dentro' ? '= total ÷ (1 − interna)' : '= total') + '.') + ' ICMS embutido = (valor + IPI, só no consumo) × alíquota, sem frete. PIS e COFINS = (valor − ICMS) × alíquota. Preço NET = valor − ICMS − PIS − COFINS.';
       $('[data-memo]').innerHTML = '<table>' + head + body + '</table><p class="hint" style="margin-top:8px">' + rule + ' Diferencial: ' + (s.interna == null ? '—' : pct(r2(s.interna - s.inter)) + '%') + '. Valores arredondados por item.</p>';
     }
 
@@ -548,6 +582,7 @@
         update();
       });
     });
+    host.querySelectorAll('input[name="' + id + '-st"]').forEach(function (r) { r.addEventListener('change', function () { s.st = r.value === 'sim'; update(); }); });
     host.querySelectorAll('input[name="' + id + '-venda"]').forEach(function (r) { r.addEventListener('change', function () { s.venda = r.value; update(); }); });
     $('#' + id + '-uf').addEventListener('change', function (e) { s.uf = e.target.value; applyDefaults(); update(); });
     $('#' + id + '-frete').addEventListener('input', update);
@@ -556,14 +591,11 @@
     elInter.addEventListener('input', function () { s.inter = parse(elInter.value); update(); });
     elMetodo.addEventListener('change', function () { s.metodo = elMetodo.value; update(); });
     var add = $('[data-add]');
-    if (add) add.addEventListener('click', function () { s.items.push({ nome: 'Produto ' + (s.items.length + 1), ncm: '', unit: 0, qtd: 1, valor: 0, ipi: 6.5 }); renderItems(); update(); });
+    if (add) add.addEventListener('click', function () { s.items.push({ nome: 'Produto ' + (s.items.length + 1), ncm: '', ind: false, qtd: 1, unit: 0, valor: 0, ipi: 0 }); renderItems(); update(); });
     $('[data-zero]').addEventListener('click', function () { build(host, id, multi, true); });
     var all = $('[data-copyall]'); all.dataset.label = 'Copiar todos os valores';
     all.addEventListener('click', function () {
-      var lines = registry.filter(function (r) { return !r.row.hidden; }).map(function (r) { return r.lbl.textContent + ': ' + raw(r.get(lastCalc)) + (r.pcEl.textContent ? ' ' + r.pcEl.textContent : ''); });
-      if (s.items.some(function (i) { return i.qtd !== 1; })) {
-        lines = s.items.map(function (it, k) { return (multi ? (it.nome || 'Produto ' + (k + 1)) : 'Produto') + ': ' + fmtQtd(it.qtd) + ' x ' + raw(it.unit) + ' = ' + raw(it.valor); }).concat(lines);
-      }
+      var lines = registry.filter(function (r) { return !r.row.hidden; }).map(function (r) { return r.cur + ': ' + raw(r.get(lastCalc)) + (r.pcEl.textContent ? ' ' + r.pcEl.textContent : '') + (r.subTxt ? ' (' + r.subTxt + ')' : ''); });
       copyText(lines.join('\n'), all);
     });
 
