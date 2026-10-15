@@ -1,0 +1,588 @@
+<title>Calculadora Fiscal Comercial</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+  /* Layout: faixa de rota fiscal (origem → destino) no topo, formulário à esquerda e painel escuro de resumo fixo à direita.
+     Marca: para aplicar o padrão do Radar, troque só os tokens --brand*, --panel*, --accent e as fontes abaixo. */
+  :root {
+    --bg: #edf1f0;
+    --surface: #ffffff;
+    --surface-2: #f4f7f6;
+    --ink: #0e1f22;
+    --muted: #5a6b6e;
+    --line: #d6e0de;
+    --brand: #0f4c52;
+    --brand-ink: #ffffff;
+    --brand-soft: #dcebea;
+    --accent: #e0a93b;
+    --panel: #0b2a2e;
+    --panel-2: #123a3f;
+    --panel-ink: #eaf3f2;
+    --panel-muted: #93b4b3;
+    --panel-line: rgba(255, 255, 255, 0.12);
+    --seg1: #5fc7c0;
+    --seg2: #e0a93b;
+    --seg3: #8ea6b8;
+    --seg4: #e8795c;
+    --warn-bg: #fff3d6;
+    --warn-ink: #66440a;
+    --ok: #1d7a4d;
+    --font-ui: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    --shadow: 0 1px 2px rgba(11, 42, 46, 0.06), 0 8px 24px rgba(11, 42, 46, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #061012; --surface: #0d1e21; --surface-2: #112a2e; --ink: #e5f0ef; --muted: #96b0af; --line: #1f3a3e;
+      --brand: #4fb3b8; --brand-ink: #04191b; --brand-soft: #14363a; --accent: #e8b44c;
+      --panel: #0a2428; --panel-2: #0f3237; --warn-bg: #3a2d10; --warn-ink: #f0d38e; --ok: #6fd3a0;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #061012; --surface: #0d1e21; --surface-2: #112a2e; --ink: #e5f0ef; --muted: #96b0af; --line: #1f3a3e;
+    --brand: #4fb3b8; --brand-ink: #04191b; --brand-soft: #14363a; --accent: #e8b44c;
+    --panel: #0a2428; --panel-2: #0f3237; --warn-bg: #3a2d10; --warn-ink: #f0d38e; --ok: #6fd3a0;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5;
+    padding-block: 24px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+  /* cabeçalho */
+  .top { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+  .brand { display: flex; gap: 14px; align-items: center; min-width: 0; }
+  .mark { flex: none; width: 46px; height: 46px; border-radius: 12px; background: var(--panel); display: grid; place-items: center; box-shadow: var(--shadow); }
+  .mark svg { width: 30px; height: 30px; }
+  .sweep { transform-origin: 50% 50%; animation: sweep 6s linear infinite; }
+  @keyframes sweep { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .sweep { animation: none; } }
+  .eyebrow { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brand); }
+  h1 { margin: 2px 0 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; }
+  .tabs { display: inline-flex; padding: 4px; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  .tab { font: inherit; font-weight: 600; font-size: 0.9rem; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 9px 16px; border-radius: 9px; }
+  .tab[aria-selected="true"] { background: var(--brand); color: var(--brand-ink); }
+
+  /* rota fiscal */
+  .route { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .path { display: flex; align-items: center; gap: 10px; }
+  .uf { font-weight: 800; font-size: 1.6rem; letter-spacing: -0.02em; line-height: 1; }
+  .path svg { width: 38px; height: 14px; color: var(--accent); flex: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+  .chip { font-size: 0.8rem; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); white-space: nowrap; }
+  .chip.plain { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+
+  .panel { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .panel { grid-template-columns: minmax(0, 1fr); } }
+  .col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 18px; min-width: 0; box-shadow: var(--shadow); }
+  .card h2 { margin: 0; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+
+  /* controles */
+  .pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 460px) { .pick { grid-template-columns: minmax(0, 1fr); } }
+  fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+  legend { padding: 0; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 7px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; }
+  .seg label { position: relative; cursor: pointer; min-width: 0; }
+  .seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; }
+  .seg span { display: block; text-align: center; padding: 9px 6px; border-radius: 9px; font-weight: 600; font-size: 0.88rem; color: var(--muted); transition: background 0.15s, color 0.15s; }
+  .seg input:checked + span { background: var(--brand); color: var(--brand-ink); box-shadow: 0 2px 8px rgba(15, 76, 82, 0.3); }
+  .seg input:disabled + span { opacity: 0.35; cursor: not-allowed; }
+  .seg input:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; }
+  label.f { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--muted); min-width: 0; }
+  input[type="text"], select {
+    font: inherit; font-weight: 500; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 11px 12px; width: 100%; min-width: 0; min-height: 44px; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type="text"]:focus, select:focus { outline: 0; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); background: var(--surface); }
+  input.num { font-family: var(--font-num); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .ncm-hint { font-size: 0.74rem; font-weight: 500; min-height: 1.1em; text-align: right; color: var(--ok); }
+  .ncm-hint.warn { color: var(--warn-ink); }
+  .chk { display: flex; gap: 10px; align-items: flex-start; font-size: 0.85rem; color: var(--muted); }
+  .chk input { margin-top: 3px; accent-color: var(--brand); }
+
+  details.more { border-top: 1px dashed var(--line); padding-top: 14px; }
+  details.more > summary { cursor: pointer; font-weight: 700; font-size: 0.85rem; color: var(--brand); list-style: none; display: flex; align-items: center; gap: 8px; }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before { content: "+"; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: var(--brand-soft); font-weight: 800; }
+  details.more[open] > summary::before { content: "−"; }
+  .more-body { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+  .hint { color: var(--muted); font-size: 0.8rem; margin: 0; }
+
+  .panel:not([data-venda="consumo"]) .metodo-only { display: none; }
+
+  /* produtos */
+  .items { display: flex; flex-direction: column; gap: 14px; }
+  .item { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .item-head { display: flex; gap: 8px; align-items: center; }
+  .item-head input { flex: 1; }
+  .ghost { font: inherit; font-size: 0.82rem; font-weight: 600; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; cursor: pointer; }
+  .ghost:hover { color: var(--ink); border-color: var(--muted); }
+  .add { align-self: flex-start; color: var(--brand); border-color: var(--brand); }
+  .item .res { border-bottom-color: var(--line); }
+
+  /* painel de resumo */
+  .summary { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); background: var(--panel); color: var(--panel-ink); border: 1px solid var(--panel-line); border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 18px 40px rgba(6, 22, 24, 0.28); overflow: hidden; min-width: 0; }
+  @media (max-width: 860px) { .summary { position: relative; top: auto; } }
+  .rings { position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; color: var(--panel-muted); opacity: 0.22; pointer-events: none; }
+  .sum-head { display: flex; flex-direction: column; gap: 4px; position: relative; }
+  .sum-label { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--panel-muted); }
+  .sum-total { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; }
+  .sum-total output { font-family: var(--font-num); font-weight: 600; font-size: clamp(1.9rem, 5vw, 2.5rem); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--panel-2); gap: 2px; }
+  .bar i { display: block; min-width: 3px; }
+  .legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; font-size: 0.78rem; color: var(--panel-muted); }
+  .legend span { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .legend b { margin-left: auto; font-family: var(--font-num); font-weight: 500; color: var(--panel-ink); font-variant-numeric: tabular-nums; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .s1 { background: var(--seg1); } .s2 { background: var(--seg2); } .s3 { background: var(--seg3); } .s4 { background: var(--seg4); }
+
+  .list { display: flex; flex-direction: column; }
+  .res { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.6rem auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--panel-line); }
+  .res:last-child { border-bottom: 0; }
+  .res[hidden] { display: none; }
+  .res .lbl { color: var(--panel-muted); font-size: 0.86rem; }
+  .res .pc { font-family: var(--font-num); font-size: 0.76rem; color: var(--panel-muted); white-space: nowrap; }
+  .item .res .pc { color: var(--muted); }
+  .res output { font-family: var(--font-num); font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+  .cp { font: inherit; font-size: 0.74rem; font-weight: 700; color: var(--panel-ink); background: rgba(255, 255, 255, 0.1); border: 1px solid var(--panel-line); border-radius: 8px; padding: 5px 10px; cursor: pointer; min-width: 68px; }
+  .cp:hover { background: rgba(255, 255, 255, 0.18); }
+  .cp.done { color: var(--seg1); border-color: var(--seg1); }
+  .zero { font: inherit; font-weight: 700; font-size: 0.8rem; color: var(--panel-ink); background: transparent; border: 1px solid var(--panel-line); border-radius: 10px; padding: 8px 14px; cursor: pointer; }
+  .zero:hover { background: rgba(255, 255, 255, 0.1); }
+  .item .res .lbl { color: var(--muted); }
+  .item .res output { color: var(--ink); }
+  .item .cp { color: var(--brand); background: var(--brand-soft); border-color: transparent; }
+  .item .cp.done { color: var(--ok); }
+  .group-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--panel-muted); margin: 4px 0 0; }
+
+  .notes { display: flex; flex-direction: column; gap: 8px; }
+  .note { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.45; }
+  .summary .hint { color: var(--panel-muted); }
+  .copyall { font: inherit; font-weight: 700; color: var(--brand-ink); background: var(--brand); border: 0; border-radius: 12px; padding: 13px 16px; cursor: pointer; }
+  .summary .copyall { background: var(--panel-ink); color: var(--panel); }
+  .summary details { font-size: 0.82rem; color: var(--panel-muted); }
+  .summary summary { cursor: pointer; font-weight: 600; color: var(--panel-ink); }
+  .memo { margin-top: 10px; overflow-x: auto; }
+  .memo table { border-collapse: collapse; width: 100%; }
+  .memo th, .memo td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--panel-line); white-space: nowrap; font-family: var(--font-num); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+  .memo th { color: var(--panel-muted); font-family: var(--font-ui); font-weight: 600; }
+  .memo th:first-child, .memo td:first-child { text-align: left; font-family: var(--font-ui); }
+
+  .mobbar { display: none; }
+  @media (max-width: 860px) {
+    .mobbar {
+      display: flex; position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); z-index: 5;
+      justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px;
+      background: var(--panel); color: var(--panel-ink); box-shadow: 0 10px 30px rgba(6, 22, 24, 0.35);
+    }
+    .mobbar span { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--panel-muted); }
+    .mobbar output { font-family: var(--font-num); font-weight: 600; font-size: 1.15rem; }
+  }
+  footer { color: var(--muted); font-size: 0.8rem; max-width: 80ch; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" stroke="#93b4b3" stroke-opacity=".5" stroke-width="1.5"/>
+          <circle cx="16" cy="16" r="9" stroke="#93b4b3" stroke-opacity=".5" stroke-width="1.5"/>
+          <circle cx="16" cy="16" r="4" stroke="#93b4b3" stroke-opacity=".5" stroke-width="1.5"/>
+          <g class="sweep"><path d="M16 16 L16 2 A14 14 0 0 1 28 9 Z" fill="#e0a93b" fill-opacity=".55"/></g>
+          <circle cx="16" cy="16" r="1.8" fill="#e0a93b"/>
+        </svg>
+      </div>
+      <div>
+        <p class="eyebrow">Ferramenta comercial</p>
+        <h1>Calculadora Fiscal Comercial</h1>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-single" aria-selected="true" aria-controls="panel-single">Item único</button>
+      <button class="tab" role="tab" id="tab-multi" aria-selected="false" aria-controls="panel-multi">Orçamento</button>
+    </div>
+  </header>
+
+  <section id="panel-single" role="tabpanel" aria-labelledby="tab-single"></section>
+  <section id="panel-multi" role="tabpanel" aria-labelledby="tab-multi" hidden></section>
+
+  <footer>Informe o valor unitário e a quantidade: impostos, frete e ST são calculados sobre o total da linha (unitário × quantidade). Valores de exemplo pré-carregados: substitua pelos da sua negociação. O botão Copiar entrega o número no formato de portal (ex.: 3557,10). O preço de venda já traz PIS, COFINS e ICMS por dentro; IPI e ST são somados por fora. Alíquotas de ICMS vêm de tabelas da internet: confirme com o fiscal antes de emitir.</footer>
+</div>
+
+<script>
+(function () {
+  // ---------- Dados ----------
+  // i = ICMS interno (tabelas da internet, 2026); p = valor da planilha antiga (null = UF não estava nela);
+  // m = base do DIFAL (dentro = base ÷ (1 − interna); normal = base simples; AP, DF e ES vêm da planilha);
+  // c = 1 quando as fontes consultadas divergem.
+  var UFS = {
+    AC:{i:19,p:17,m:'dentro'}, AL:{i:20,p:null,m:'dentro',c:1}, AM:{i:20,p:null,m:'dentro'}, AP:{i:18,p:18,m:'normal'},
+    BA:{i:20.5,p:null,m:'dentro',c:1}, CE:{i:20,p:null,m:'dentro'}, DF:{i:20,p:18,m:'normal'}, ES:{i:17,p:17,m:'normal'},
+    GO:{i:19,p:null,m:'dentro'}, MA:{i:23,p:null,m:'dentro',c:1}, MG:{i:18,p:18,m:'dentro'}, MS:{i:17,p:null,m:'dentro'},
+    MT:{i:17,p:17,m:'dentro'}, PA:{i:19,p:null,m:'dentro'}, PB:{i:20,p:18,m:'dentro'}, PE:{i:20.5,p:null,m:'dentro'},
+    PI:{i:21,p:null,m:'dentro',c:1}, PR:{i:19.5,p:null,m:'dentro',c:1}, RJ:{i:22,p:20,m:'dentro',c:1}, RN:{i:20,p:null,m:'dentro'},
+    RO:{i:19.5,p:null,m:'dentro',c:1}, RR:{i:20,p:null,m:'dentro'}, RS:{i:17,p:17,m:'dentro'}, SC:{i:17,p:null,m:'dentro'},
+    SE:{i:19,p:18,m:'dentro'}, SP:{i:18,p:null,m:'dentro'}, TO:{i:20,p:null,m:'dentro'}
+  };
+  // NCM → IPI. Só entram NCMs conferidos em nota fiscal real; os demais ficam com IPI digitado.
+  var NCM_TAB = {
+    '83011000': { desc: 'Cadeados', ipi: 0, fonte: 'NF CFOP 6403 sem IPI destacado' }
+  };
+  function fmtNcm(d) { d = String(d || '').replace(/\D/g, '').slice(0, 8); return d.length > 6 ? d.slice(0, 4) + '.' + d.slice(4, 6) + '.' + d.slice(6) : d.length > 4 ? d.slice(0, 4) + '.' + d.slice(4) : d; }
+  var G12 = ['MG','RJ','RS','SP','SC','PR']; // destinos S/SE (exceto ES): 12% nacional
+
+  // Alíquota do ICMS da operação: interna se o destino é a própria unidade; 4% importado; 12% ou 7% nacional.
+  function icmsOperacao(origem, uf, unit) {
+    if (uf === unit) return UFS[unit].i;
+    return origem === 'importado' ? 4 : (G12.indexOf(uf) >= 0 ? 12 : 7);
+  }
+  function r2(x) { return Math.round((x + Number.EPSILON) * 100) / 100; }
+  function fmt(n) { return isFinite(n) ? n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'; }
+  function raw(n) { return isFinite(n) ? n.toFixed(2).replace('.', ',') : ''; }
+  function parse(t) {
+    t = String(t == null ? '' : t).replace(/[^\d.,-]/g, '');
+    if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(t);
+    return isFinite(n) && n > 0 ? n : 0;
+  }
+  // quantidade: aceita decimal (até 3 casas); "1.000" sem vírgula é lido como mil
+  function parseQtd(t) {
+    t = String(t == null ? '' : t).replace(/[^\d.,]/g, '');
+    if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    var n = parseFloat(t);
+    return isFinite(n) && n > 0 ? Math.round(n * 1000) / 1000 : 0;
+  }
+  function fmtQtd(n) { return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 }); }
+  function pct(n) { return String(n).replace('.', ','); }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // ---------- Cálculo ----------
+  function calc(s) {
+    var I = s.interna == null ? NaN : s.interna / 100, E = s.inter / 100;
+    var sumV = 0, sumNet = 0; s.items.forEach(function (it) { sumV += it.valor; });
+    var frLeft = s.frete, out = { lines: [], sumV: sumV, sumIpi: 0, sumSt: 0, frete: s.frete };
+    s.items.forEach(function (it, k) {
+      var last = k === s.items.length - 1;
+      var fr = last ? frLeft : r2(sumV > 0 ? s.frete * it.valor / sumV : s.frete / s.items.length);
+      frLeft = r2(frLeft - fr);
+      var baseIpi = it.valor + (s.freteBase ? fr : 0);
+      var ipi = r2(baseIpi * it.ipi / 100);
+      var total0 = it.valor + fr + ipi;
+      var dentro = s.venda === 'revenda' || s.metodo === 'dentro';
+      var bc = dentro ? total0 / (1 - I) : total0;
+      var st = bc * (I - E);
+      // base de ST como aparece na NF-e: total × (1 − ICMS operação) ÷ (1 − interna); mesmo ST do cálculo por dentro
+      var bcNf = (s.venda === 'revenda' && dentro) ? total0 * (1 - E) / (1 - I) : bc;
+      st = isFinite(st) ? Math.max(0, r2(st)) : NaN;
+      var icms = r2(it.valor * s.inter / 100), pisV = r2(it.valor * s.pis / 100), cofV = r2(it.valor * s.cofins / 100);
+      var net = r2(it.valor - icms - pisV - cofV);
+      out.lines.push({ v: it.valor, fr: fr, baseIpi: baseIpi, ipi: ipi, icms: icms, pis: pisV, cofins: cofV, net: net, total0: total0, bc: bcNf, st: st });
+      sumNet += net; out.sumIpi += ipi; out.sumSt += isFinite(st) ? st : 0;
+    });
+    out.sumIpi = r2(out.sumIpi); out.sumSt = r2(out.sumSt);
+    out.semImp = r2(sumNet);
+    // revenda: ST vai na NF. Consumo: o DIFAL é guia à parte (GNRE) e fica fora do total da NF.
+    out.stNaNota = s.venda === 'revenda' ? out.sumSt : 0;
+    out.totalNF = r2(sumV + out.sumIpi + s.frete + out.stNaNota);
+    out.total = out.totalNF;
+    out.comImp = r2(sumV + out.sumIpi + out.stNaNota);
+    return out;
+  }
+
+  // ---------- Cópia ----------
+  function copyText(text, btn) {
+    function done() { btn.textContent = 'Copiado'; btn.classList.add('done'); setTimeout(function () { btn.textContent = btn.dataset.label || 'Copiar'; btn.classList.remove('done'); }, 1200); }
+    function fallback() {
+      var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { btn.textContent = 'Selecione'; }
+      document.body.removeChild(ta);
+    }
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  }
+
+  // ---------- Painel ----------
+  var ARROW = '<svg viewBox="0 0 38 14" fill="none" aria-hidden="true"><path d="M1 7h34M29 1.5 35.5 7 29 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var RINGS = '<svg class="rings" viewBox="0 0 220 220" fill="none" aria-hidden="true"><circle cx="110" cy="110" r="105" stroke="currentColor" stroke-width="1.5"/><circle cx="110" cy="110" r="75" stroke="currentColor" stroke-width="1.5"/><circle cx="110" cy="110" r="45" stroke="currentColor" stroke-width="1.5"/><path d="M110 5v210M5 110h210" stroke="currentColor" stroke-width="1"/></svg>';
+
+  function build(host, id, multi, blank) {
+    var s = {
+      cliente: 'contrib', unit: 'PR', pis: 1.67, cofins: 7.6, origem: 'nacional', venda: 'consumo', uf: 'MG', frete: blank ? 0 : (multi ? 280 : 340), freteBase: true,
+      interna: 18, inter: 12, metodo: 'dentro',
+      items: blank ? [{ nome: 'Produto 1', ncm: '', unit: 0, qtd: 1, valor: 0, ipi: 0 }] : multi
+        ? [{ nome: 'Produto 1', ncm: '', unit: 1200, qtd: 1, valor: 1200, ipi: 6.5 }, { nome: 'Produto 2', ncm: '', unit: 850, qtd: 1, valor: 850, ipi: 5 }, { nome: 'Produto 3', ncm: '', unit: 640, qtd: 1, valor: 640, ipi: 6.5 }]
+        : [{ nome: '', ncm: '', unit: 3000, qtd: 1, valor: 3000, ipi: 6.5 }]
+    };
+    var registry = [];
+    var ufOpts = Object.keys(UFS).map(function (u) { return '<option value="' + u + '"' + (u === s.uf ? ' selected' : '') + '>' + u + '</option>'; }).join('');
+
+    host.innerHTML =
+      '<div class="panel" data-venda="consumo">' +
+        '<div class="col">' +
+          '<div class="route" data-route></div>' +
+          '<div class="card"><h2>Operação</h2>' +
+            '<div class="pick">' +
+              '<fieldset><legend>Unidade que fatura</legend><div class="seg">' +
+                '<label><input type="radio" name="' + id + '-unit" value="PR" checked><span>Paraná</span></label>' +
+                '<label><input type="radio" name="' + id + '-unit" value="SC"><span>Santa Catarina</span></label></div></fieldset>' +
+              '<fieldset><legend>Origem do produto</legend><div class="seg">' +
+                '<label><input type="radio" name="' + id + '-origem" value="nacional" checked><span>Nacional</span></label>' +
+                '<label><input type="radio" name="' + id + '-origem" value="importado"><span>Importado</span></label></div></fieldset>' +
+              '<fieldset><legend>Cliente</legend><div class="seg">' +
+                '<label><input type="radio" name="' + id + '-cliente" value="contrib" checked><span>Contribuinte</span></label>' +
+                '<label><input type="radio" name="' + id + '-cliente" value="isento"><span>Isento</span></label></div></fieldset>' +
+              '<fieldset><legend>Tipo de venda</legend><div class="seg">' +
+                '<label><input type="radio" name="' + id + '-venda" value="consumo" checked><span>Consumo</span></label>' +
+                '<label><input type="radio" name="' + id + '-venda" value="revenda"><span>Revenda</span></label></div></fieldset>' +
+            '</div>' +
+            '<div class="grid">' +
+              '<label class="f" for="' + id + '-uf">UF de destino<select id="' + id + '-uf">' + ufOpts + '</select></label>' +
+              '<label class="f" for="' + id + '-frete">Frete (R$)<input class="num" type="text" inputmode="decimal" id="' + id + '-frete" placeholder="0,00" value="' + (s.frete ? raw(s.frete) : '') + '"></label>' +
+            '</div>' +
+            '<details class="more"><summary>Alíquotas e bases (editáveis)</summary><div class="more-body">' +
+              '<p class="hint">PIS, COFINS e ICMS da operação estão embutidos no preço de venda. Mudar a UF, a unidade ou a origem restaura os valores padrão.</p>' +
+              '<div class="grid">' +
+                '<label class="f" for="' + id + '-interna">ICMS interno destino %<input class="num" type="text" inputmode="decimal" id="' + id + '-interna"></label>' +
+                '<label class="f" for="' + id + '-inter">ICMS da operação %<input class="num" type="text" inputmode="decimal" id="' + id + '-inter"></label>' +
+                '<label class="f" for="' + id + '-pis">PIS %<input class="num" type="text" inputmode="decimal" id="' + id + '-pis" value="' + pct(s.pis) + '"></label>' +
+                '<label class="f" for="' + id + '-cofins">COFINS %<input class="num" type="text" inputmode="decimal" id="' + id + '-cofins" value="' + pct(s.cofins) + '"></label>' +
+                '<label class="f metodo-only" for="' + id + '-metodo">Base do DIFAL<select id="' + id + '-metodo"><option value="dentro">Por dentro</option><option value="normal">Normal</option></select></label>' +
+              '</div>' +
+              '<label class="chk"><input type="checkbox" id="' + id + '-fb" checked><span>Frete entra na base do IPI (como na planilha)</span></label>' +
+            '</div></details>' +
+          '</div>' +
+          '<div class="card"><h2>' + (multi ? 'Produtos' : 'Produto') + '</h2><div class="items" data-items></div>' +
+            (multi ? '<button class="ghost add" type="button" data-add>+ Adicionar produto</button>' : '') + '</div>' +
+        '</div>' +
+        '<div class="col">' +
+          '<aside class="summary" aria-label="Resumo fiscal">' + RINGS +
+            '<div class="sum-head"><span class="sum-label" data-totallbl></span>' +
+              '<div class="sum-total"><output data-total></output><button class="zero" type="button" data-zero title="Limpar todos os dados desta análise">Zerar</button></div></div>' +
+            '<div><div class="bar" data-bar></div><div class="legend" data-legend style="margin-top:10px"></div></div>' +
+            '<div><div class="list" data-results></div></div>' +
+            '<div class="notes" data-notes></div>' +
+            '<button class="copyall" type="button" data-copyall>Copiar todos os valores</button>' +
+            '<details><summary>Memória de cálculo</summary><div class="memo" data-memo></div></details>' +
+          '</aside>' +
+        '</div>' +
+        '<div class="mobbar" data-mobbar><span data-moblbl></span><output data-mobval></output></div>' +
+      '</div>';
+
+    var $ = function (q) { return host.querySelector(q); };
+    var panel = $('.panel'), elInterna = $('#' + id + '-interna'), elInter = $('#' + id + '-inter'), elMetodo = $('#' + id + '-metodo');
+    var itemsHost = $('[data-items]'), resHost = $('[data-results]');
+    var lastCalc = null, subEls = [];
+
+    function resRow(label, get, show, pc) {
+      var row = document.createElement('div'); row.className = 'res';
+      row.innerHTML = '<span class="lbl"></span><output></output><span class="pc"></span><button class="cp" type="button" data-label="Copiar">Copiar</button>';
+      var out = row.querySelector('output'), btn = row.querySelector('button'), lbl = row.querySelector('.lbl'), pcEl = row.querySelector('.pc');
+      btn.addEventListener('click', function () { copyText(raw(get(lastCalc)), btn); });
+      registry.push({ out: out, get: get, label: label, lbl: lbl, row: row, show: show, pc: pc, pcEl: pcEl });
+      return row;
+    }
+    // IPI, ICMS, PIS e COFINS, com o percentual no fim da linha
+    function taxRows(host, line, k) {
+      host.appendChild(resRow('Valor do IPI', function (c) { return line(c).ipi; }, null, function () { return s.items[k].ipi; }));
+      host.appendChild(resRow('Valor do ICMS', function (c) { return line(c).icms; }, null, function () { return s.inter; }));
+      host.appendChild(resRow('Valor do PIS', function (c) { return line(c).pis; }, null, function () { return s.pis; }));
+      host.appendChild(resRow('Valor do COFINS', function (c) { return line(c).cofins; }, null, function () { return s.cofins; }));
+    }
+    function stLabel(s) { return s.venda === 'revenda' ? 'Valor da ST' : s.cliente === 'isento' ? 'DIFAL pago pela empresa (fora da NF)' : 'DIFAL do comprador (informativo)'; }
+    function totalLabel(s) {
+      if (multi) return s.venda === 'revenda' ? 'Total com frete' : 'Total com frete (sem DIFAL)';
+      return s.venda === 'revenda' ? 'Valor total da nota' : 'Valor total da nota (sem DIFAL)';
+    }
+
+    function ncmHint(it, el) {
+      var t = NCM_TAB[it.ncm];
+      el.classList.toggle('warn', !t && it.ncm.length === 8);
+      el.textContent = t ? t.desc + ' · IPI ' + pct(t.ipi) + '%' : it.ncm.length === 8 ? 'NCM sem IPI cadastrado' : '';
+    }
+
+    function renderItems() {
+      registry = []; subEls = []; itemsHost.innerHTML = ''; resHost.innerHTML = '';
+      s.items.forEach(function (it, k) {
+        var n = k + 1, card = document.createElement('div'); card.className = multi ? 'item' : '';
+        card.innerHTML =
+          (multi ? '<div class="item-head"><input type="text" aria-label="Descrição do produto ' + n + '" placeholder="Descrição (opcional)"><button class="ghost" type="button" data-rm>Remover</button></div>' : '') +
+          '<div class="grid">' +
+            '<label class="f">' + (multi ? 'Valor unitário do produto ' + n : 'Valor unitário') + ' (R$)<input class="num v" type="text" inputmode="decimal"></label>' +
+            '<label class="f">Quantidade<input class="num q" type="text" inputmode="decimal" placeholder="1"></label>' +
+            '<label class="f">NCM<input class="num ncm" type="text" inputmode="numeric" placeholder="0000.00.00"><span class="ncm-hint"></span></label>' +
+            '<label class="f">IPI %<input class="num ipi" type="text" inputmode="decimal"></label>' +
+          '</div><p class="hint sub" aria-live="polite"></p>' + (multi ? '<div data-lineres></div>' : '');
+        subEls[k] = card.querySelector('.sub');
+        var q = card.querySelector('.q'), v = card.querySelector('.v'), ipi = card.querySelector('.ipi'), ncm = card.querySelector('.ncm'), hint = card.querySelector('.ncm-hint');
+        q.value = it.qtd ? fmtQtd(it.qtd) : ''; v.value = it.unit ? raw(it.unit) : ''; v.placeholder = '0,00'; ipi.value = it.ipi ? pct(it.ipi) : ''; ipi.placeholder = '0'; ncm.value = fmtNcm(it.ncm); ncmHint(it, hint);
+        v.addEventListener('input', function () { it.unit = parse(v.value); update(); });
+        q.addEventListener('input', function () { it.qtd = parseQtd(q.value); update(); });
+        ncm.addEventListener('input', function () {
+          it.ncm = ncm.value.replace(/\D/g, '').slice(0, 8); ncm.value = fmtNcm(it.ncm);
+          var t = NCM_TAB[it.ncm]; if (t) { it.ipi = t.ipi; ipi.value = pct(t.ipi); }
+          ncmHint(it, hint); update();
+        });
+        ipi.addEventListener('input', function () { it.ipi = parse(ipi.value); update(); });
+        if (multi) {
+          var nome = card.querySelector('.item-head input'); nome.value = it.nome;
+          nome.addEventListener('input', function () { it.nome = nome.value; });
+          var rm = card.querySelector('[data-rm]');
+          rm.disabled = s.items.length < 2; rm.style.opacity = rm.disabled ? '.4' : '1';
+          rm.addEventListener('click', function () { s.items.splice(k, 1); renumber(); renderItems(); update(); });
+          var lr = card.querySelector('[data-lineres]');
+          lr.appendChild(resRow(function (s) { return s.items[k].qtd !== 1 ? 'Valor do produto ' + n + ' (total da linha)' : 'Valor do produto ' + n; }, function (c) { return c.lines[k].v; }));
+          lr.appendChild(resRow('Valor unitário', function () { return s.items[k].unit; }, function (s) { return s.items[k].qtd !== 1; }));
+          taxRows(lr, function (c) { return c.lines[k]; }, k);
+          lr.appendChild(resRow('Preço NET', function (c) { return c.lines[k].net; }));
+          lr.appendChild(resRow(stLabel, function (c) { return c.lines[k].st; }));
+        }
+        itemsHost.appendChild(card);
+      });
+      if (!multi) {
+        resHost.appendChild(resRow(function (s) { return s.items[0].qtd !== 1 ? 'Valor do produto (total da linha)' : 'Valor do produto'; }, function (c) { return c.lines[0].v; }));
+        resHost.appendChild(resRow('Valor unitário', function () { return s.items[0].unit; }, function (s) { return s.items[0].qtd !== 1; }));
+        taxRows(resHost, function (c) { return c.lines[0]; }, 0);
+        resHost.appendChild(resRow('Preço NET', function (c) { return c.lines[0].net; }));
+        resHost.appendChild(resRow(stLabel, function (c) { return c.lines[0].st; }));
+        resHost.appendChild(resRow('Valor do frete', function (c) { return c.frete; }));
+        resHost.appendChild(resRow(totalLabel, function (c) { return c.total; }));
+      } else {
+        var t = document.createElement('div'); t.className = 'group-title'; t.textContent = 'Fechamento do orçamento'; resHost.appendChild(t);
+        resHost.appendChild(resRow('Valor do frete', function (c) { return c.frete; }));
+        resHost.appendChild(resRow('Valor dos produtos S/ impostos', function (c) { return c.semImp; }));
+        resHost.appendChild(resRow('Valor dos produtos C/ impostos', function (c) { return c.comImp; }));
+        resHost.appendChild(resRow(totalLabel, function (c) { return c.total; }));
+        var hint2 = document.createElement('p'); hint2.className = 'hint';
+        hint2.textContent = 'S/ impostos = soma dos preços NET (sem PIS, COFINS e ICMS). C/ impostos = produtos + IPI (+ ST na revenda), sem frete e sem DIFAL. Os valores por produto aparecem em cada item.';
+        resHost.appendChild(hint2);
+      }
+    }
+    function renumber() { s.items.forEach(function (it, k) { if (/^Produto \d+$/.test(it.nome)) it.nome = 'Produto ' + (k + 1); }); }
+
+    function applyDefaults() {
+      var d = UFS[s.uf];
+      s.inter = icmsOperacao(s.origem, s.uf, s.unit);
+      s.interna = d.i;
+      s.metodo = d.m;
+      elInterna.value = pct(s.interna);
+      elInter.value = pct(s.inter);
+      elMetodo.value = s.metodo;
+    }
+
+    function update() {
+      s.frete = parse($('#' + id + '-frete').value);
+      panel.dataset.venda = s.venda;
+      s.items.forEach(function (it) { it.valor = r2(it.unit * it.qtd); });
+      var c = lastCalc = calc(s), d = UFS[s.uf];
+      s.items.forEach(function (it, k) { subEls[k].textContent = !(it.qtd > 0) ? 'Informe a quantidade.' : it.unit > 0 ? 'Subtotal da linha: R$ ' + fmt(it.valor) + ' (' + fmtQtd(it.qtd) + ' × ' + fmt(it.unit) + ')' : ''; });
+      registry.forEach(function (r) {
+        r.lbl.textContent = typeof r.label === 'function' ? r.label(s) : r.label;
+        r.row.hidden = r.show ? !r.show(s) : false;
+        r.out.textContent = fmt(r.get(c));
+        r.pcEl.textContent = r.pc ? '(' + pct(r.pc(s)) + ')%' : '';
+      });
+      $('[data-totallbl]').textContent = totalLabel(s); $('[data-total]').textContent = 'R$ ' + fmt(c.total);
+      $('[data-moblbl]').textContent = totalLabel(s); $('[data-mobval]').textContent = 'R$ ' + fmt(c.total);
+
+      // rota fiscal
+      var cliente = s.cliente === 'isento' ? 'Isento' : 'Contribuinte', venda = s.venda === 'revenda' ? 'Revenda' : 'Consumo';
+      var base = (s.venda === 'revenda' || s.metodo === 'dentro') ? 'Base por dentro' : 'Base normal';
+      $('[data-route]').innerHTML = '<div class="path"><span class="uf">' + s.unit + '</span>' + ARROW + '<span class="uf">' + s.uf + '</span></div>' +
+        '<div class="chips"><span class="chip">' + (s.origem === 'importado' ? 'Importado' : 'Nacional') + ' · ICMS ' + pct(s.inter) + '%</span>' +
+        '<span class="chip">' + s.uf + ' interno ' + (s.interna == null ? '—' : pct(s.interna) + '%') + '</span>' +
+        '<span class="chip plain">' + cliente + ' · ' + venda + '</span><span class="chip plain">' + base + '</span></div>';
+
+      // composição do total
+      var parts = [{ k: 'Produtos', v: c.sumV, c: 's1' }, { k: 'IPI', v: c.sumIpi, c: 's2' }, { k: 'Frete', v: c.frete, c: 's3' }, { k: 'ST', v: c.stNaNota, c: 's4' }].filter(function (p) { return p.v > 0; });
+      $('[data-bar]').innerHTML = parts.map(function (p) { return '<i class="' + p.c + '" style="flex:' + p.v + '"></i>'; }).join('');
+      $('[data-legend]').innerHTML = parts.map(function (p) { return '<span><i class="dot ' + p.c + '"></i>' + p.k + '<b>' + fmt(p.v) + '</b></span>'; }).join('');
+
+      // avisos
+      var notes = [];
+      if (s.uf === s.unit) notes.push('Venda dentro de ' + s.uf + ': sem DIFAL/ST. O ICMS interno já está no preço.');
+      if (d.p != null && d.p !== d.i) notes.push('ICMS interno de ' + s.uf + ': tabela da internet ' + pct(d.i) + '%, a planilha antiga usava ' + pct(d.p) + '%. Confirme com o fiscal.');
+      else if (d.c) notes.push('As fontes divergem sobre o ICMS interno de ' + s.uf + ' (pode incluir fundo de pobreza). Confirme com o fiscal.');
+      var dif = r2(c.sumSt);
+      if (s.cliente === 'isento') notes.push('Cliente isento: a empresa paga o DIFAL de ' + s.uf + ' em guia (GNRE) e não repassa ao cliente. Aqui são R$ ' + fmt(dif) + ' (' + fmt(c.totalNF > 0 ? dif / c.totalNF * 100 : 0) + '% do total da NF): considere na margem. O valor vai nos dados adicionais da NF, não no total (CFOP de referência: 6108).');
+      else if (s.venda === 'consumo') notes.push('Contribuinte para consumo: o comprador recolhe o DIFAL. O valor é só informativo e não entra no total da NF.');
+      if (s.venda === 'revenda') notes.push('Revenda sem MVA (CFOP de referência: 6403): ST pela fórmula "por dentro" com MVA 0%, igual à NF conferida. Se o NCM tiver MVA, o ST real é maior.');
+      s.items.forEach(function (i) { var t = NCM_TAB[i.ncm]; if (t) notes.push('NCM ' + fmtNcm(i.ncm) + ' (' + t.desc + '): IPI ' + pct(t.ipi) + '% conforme ' + t.fonte + '.'); else if (i.ncm.length === 8) notes.push('NCM ' + fmtNcm(i.ncm) + ' sem IPI cadastrado: confirme o IPI e digite na mão.'); });
+      if (s.interna == null || isNaN(s.interna)) notes.push('Informe o ICMS interno de ' + s.uf + ' para calcular o ST.');
+      if (s.items.some(function (i) { return !(i.qtd > 0); })) notes.push('Informe a quantidade (maior que zero) em todos os produtos.');
+      if (s.items.some(function (i) { return i.ipi === 0; })) notes.push('Há produto com IPI 0%. Confirme a alíquota do NCM.');
+      $('[data-notes]').innerHTML = notes.map(function (t) { return '<div class="note">' + esc(t) + '</div>'; }).join('');
+
+      // memória
+      var head = '<tr><th>Item</th><th>Base IPI</th><th>IPI</th><th>Frete rateado</th><th>Total s/ ST</th><th>Base ST (NF)</th><th>ST</th></tr>';
+      var body = c.lines.map(function (l, k) {
+        return '<tr><td>' + (multi ? esc(s.items[k].nome || 'Produto ' + (k + 1)) : 'Produto') + '</td><td>' + fmt(l.baseIpi) + '</td><td>' + fmt(l.ipi) + '</td><td>' + fmt(l.fr) + '</td><td>' + fmt(l.total0) + '</td><td>' + fmt(l.bc) + '</td><td>' + fmt(l.st) + '</td></tr>';
+      }).join('');
+      var rule = (s.venda === 'revenda' ? 'ST = base ST × interna − total × ICMS da operação; base ST = total × (1 − ICMS da operação) ÷ (1 − interna).' : 'DIFAL = base × (interna − ICMS da operação); base ' + (s.metodo === 'dentro' ? '= total ÷ (1 − interna)' : '= total') + '.') + ' ICMS, PIS e COFINS embutidos = valor do produto (sem frete) × alíquota. Preço NET = valor − ICMS − PIS − COFINS.';
+      $('[data-memo]').innerHTML = '<table>' + head + body + '</table><p class="hint" style="margin-top:8px">' + rule + ' Diferencial: ' + (s.interna == null ? '—' : pct(r2(s.interna - s.inter)) + '%') + '. Valores arredondados por item.</p>';
+    }
+
+    // eventos
+    host.querySelectorAll('input[name="' + id + '-origem"]').forEach(function (r) { r.addEventListener('change', function () { s.origem = r.value; applyDefaults(); update(); }); });
+    host.querySelectorAll('input[name="' + id + '-unit"]').forEach(function (r) { r.addEventListener('change', function () { s.unit = r.value; applyDefaults(); update(); }); });
+    $('#' + id + '-pis').addEventListener('input', function (e) { s.pis = parse(e.target.value); update(); });
+    $('#' + id + '-cofins').addEventListener('input', function (e) { s.cofins = parse(e.target.value); update(); });
+    var rRev = host.querySelector('input[name="' + id + '-venda"][value="revenda"]'), rCon = host.querySelector('input[name="' + id + '-venda"][value="consumo"]');
+    host.querySelectorAll('input[name="' + id + '-cliente"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        s.cliente = r.value; rRev.disabled = s.cliente === 'isento';
+        if (s.cliente === 'isento' && s.venda === 'revenda') { s.venda = 'consumo'; rCon.checked = true; }
+        update();
+      });
+    });
+    host.querySelectorAll('input[name="' + id + '-venda"]').forEach(function (r) { r.addEventListener('change', function () { s.venda = r.value; update(); }); });
+    $('#' + id + '-uf').addEventListener('change', function (e) { s.uf = e.target.value; applyDefaults(); update(); });
+    $('#' + id + '-frete').addEventListener('input', update);
+    $('#' + id + '-fb').addEventListener('change', function (e) { s.freteBase = e.target.checked; update(); });
+    elInterna.addEventListener('input', function () { s.interna = elInterna.value.trim() === '' ? null : parse(elInterna.value); update(); });
+    elInter.addEventListener('input', function () { s.inter = parse(elInter.value); update(); });
+    elMetodo.addEventListener('change', function () { s.metodo = elMetodo.value; update(); });
+    var add = $('[data-add]');
+    if (add) add.addEventListener('click', function () { s.items.push({ nome: 'Produto ' + (s.items.length + 1), ncm: '', unit: 0, qtd: 1, valor: 0, ipi: 6.5 }); renderItems(); update(); });
+    $('[data-zero]').addEventListener('click', function () { build(host, id, multi, true); });
+    var all = $('[data-copyall]'); all.dataset.label = 'Copiar todos os valores';
+    all.addEventListener('click', function () {
+      var lines = registry.filter(function (r) { return !r.row.hidden; }).map(function (r) { return r.lbl.textContent + ': ' + raw(r.get(lastCalc)) + (r.pcEl.textContent ? ' ' + r.pcEl.textContent : ''); });
+      if (s.items.some(function (i) { return i.qtd !== 1; })) {
+        lines = s.items.map(function (it, k) { return (multi ? (it.nome || 'Produto ' + (k + 1)) : 'Produto') + ': ' + fmtQtd(it.qtd) + ' x ' + raw(it.unit) + ' = ' + raw(it.valor); }).concat(lines);
+      }
+      copyText(lines.join('\n'), all);
+    });
+
+    applyDefaults(); renderItems(); update();
+  }
+
+  build(document.getElementById('panel-single'), 's', false);
+  build(document.getElementById('panel-multi'), 'm', true);
+
+  // abas
+  var tabs = { single: ['tab-single', 'panel-single'], multi: ['tab-multi', 'panel-multi'] };
+  Object.keys(tabs).forEach(function (k) {
+    document.getElementById(tabs[k][0]).addEventListener('click', function () {
+      Object.keys(tabs).forEach(function (j) {
+        var on = j === k;
+        document.getElementById(tabs[j][0]).setAttribute('aria-selected', on);
+        document.getElementById(tabs[j][1]).hidden = !on;
+      });
+    });
+  });
+})();
+</script>
