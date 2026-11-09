@@ -137,3 +137,33 @@ reportado, mas não decide.
 
 Se aprovada: roda uma vez no período reservado (07/2026 em diante), 14b, nos dois ativos.
 Se reprovada: encerra a busca por estratégia em cripto e o projeto segue para a B3.
+
+Resultados (fora da amostra, 08/2018 a 06/2026, modo contínuo):
+
+| | BTC 14a | BTC 14b | ETH 14a | ETH 14b |
+|---|---:|---:|---:|---:|
+| Operações | 168 | 168 | 181 | 182 |
+| Acerto | 33,9% | 33,9% | 28,2% | 27,5% |
+| Fator de lucro | 1,74 | 1,84 | 1,28 | 1,27 |
+| Resultado | +31,89% | +35,63% | +16,44% | +15,64% |
+| Drawdown | 8,98% | 8,43% | 12,28% | 11,40% |
+| Supera o aleatório | 100% | 100% | 88,5% | 81,0% |
+| Comprar e segurar (mesma exposição de 10%) | +67,50% | +67,58% | +27,54% | +27,58% |
+
+Avaliação conjunta (`agregar`, regra fixada antes):
+
+| | Operações | Fator de lucro | Pior drawdown | Pior percentil | Veredito |
+|---|---:|---:|---:|---:|---|
+| 14b (decide) | 350 | 1,51 | 11,40% (ETH) | 81,0% (ETH) | **Reprovada** |
+| 14a | 349 | 1,48 | 12,28% (ETH) | 88,5% (ETH) | Reprovada |
+
+Leitura:
+- Pela regra registrada, a hipótese 14 está **reprovada**: em ETH a mesma regra não supera
+  o aleatório e passa do drawdown máximo. A regra não muda depois do resultado.
+- BTC sozinho passa em tudo menos no número de operações (168 < 200), mas não decide:
+  escolher o ativo que deu certo depois de ver o resultado é o erro que a régua evita.
+- **Contraponto decisivo:** com a mesma exposição de 10%, comprar e segurar rendeu mais
+  que a estratégia nos dois ativos (BTC +67,5% contra +35,6%; ETH +27,6% contra +15,6%).
+  Em 8 anos de alta do cripto, operar não superou ficar parado.
+- Conforme combinado: **fim da busca por estratégia em cripto.** O período reservado
+  (07/2026 em diante) não foi usado. O projeto segue para a B3.

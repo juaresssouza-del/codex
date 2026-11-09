@@ -13,7 +13,7 @@ Python 3.11 ou mais novo.
 ```sh
 cd tradelab-motor
 python -m pip install numpy pandas pytest
-python -m pytest            # 49 testes
+python -m pytest            # 51 testes
 ```
 
 ## Uso
@@ -88,6 +88,11 @@ Rodada 3 (hipótese 13: rompimento em 4h sem alvo, saída por stop móvel): prim
 resultado positivo, +7,07% (ordem a mercado) e +8,76% (ordem limitada + BNB) fora da
 amostra, fator de lucro 1,37 e 1,47. Reprovada pela régua: 100 operações, abaixo das
 200 exigidas.
+
+Rodada 4 (hipótese 14: a mesma regra em BTC e ETH desde 2017, sem fechar a posição na
+virada do mês): reprovada na avaliação conjunta. BTC foi bem (+35,6%, fator de lucro
+1,84), ETH não superou o aleatório e passou do drawdown máximo. Nos dois ativos,
+comprar e segurar com a mesma exposição rendeu mais. A busca em cripto foi encerrada.
 
 ## Estrutura
 
