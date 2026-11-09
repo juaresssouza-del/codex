@@ -80,6 +80,10 @@ Leitura: em 15 minutos, cada operação completa custa cerca de 0,3% (taxa + sli
 Antes dos custos, SMA e rompimento ficam perto de zero e o RSI já perde. Nenhuma
 estratégia tem vantagem que pague o custo de operar nesse tempo gráfico.
 
+Rodada 2 (5m, 1h e 4h, até 06/2026): as 9 hipóteses também foram reprovadas. O único
+sinal consistente foi rompimento em 4h, positivo antes dos custos, mas abaixo do custo de
+operar. Detalhes em `HIPOTESES.md`.
+
 ## Estrutura
 
 | Arquivo | Papel |

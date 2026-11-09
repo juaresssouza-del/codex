@@ -34,4 +34,31 @@ horizonte em horas muda com o tempo gráfico). Tudo até 2026-06.
 | 7–9 | 1h | 2021-01 a 2026-06 | 6 / 1 meses | 20 |
 | 10–12 | 4h | 2021-01 a 2026-06 | 12 / 1 meses | 15 |
 
-Resultados: preenchidos depois da rodada.
+Resultados (fora da amostra; "bruto" = antes de taxa e slippage; "aleatório" = % das
+200 rodadas aleatórias que a estratégia superou):
+
+| # | Tempo | Estratégia | Ops | Fator de lucro | Líquido | Bruto (USDT) | Aleatório | Veredito |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| 4 | 5m | SMA | 879 | 0,42 | −23,99% | −5,86 | 94,5% | Reprovada |
+| 5 | 5m | Rompimento | 598 | 0,45 | −17,65% | −13,07 | 72,5% | Reprovada |
+| 6 | 5m | RSI | 327 | 0,31 | −10,13% | −9,34 | 24,0% | Reprovada |
+| 7 | 1h | SMA | 481 | 0,67 | −11,43% | +20,20 | 91,0% | Reprovada |
+| 8 | 1h | Rompimento | 529 | 0,66 | −13,63% | +13,12 | 82,5% | Reprovada |
+| 9 | 1h | RSI | 458 | 0,48 | −18,35% | −60,66 | 0,5% | Reprovada |
+| 10 | 4h | SMA | 127 | 0,49 | −5,59% | −18,99 | 9,5% | Reprovada |
+| 11 | 4h | Rompimento | 229 | 0,81 | −3,32% | +33,90 | 100% | Reprovada |
+| 12 | 4h | RSI | 215 | 0,50 | −9,17% | −30,57 | 5,0% | Reprovada |
+
+Comprar e segurar com a mesma exposição: 5m −3,76% (05/2025–06/2026); 1h +6,82%
+(07/2021–06/2026); 4h +2,48% (01/2022–06/2026).
+
+Leitura:
+- 5m é o pior tempo gráfico: o maior volume de operações paga o maior custo, e nenhuma
+  estratégia tem resultado positivo nem antes dos custos.
+- Reversão por RSI perde antes dos custos em todos os tempos gráficos: comprar queda
+  em BTC, com este stop e alvo, é pior que entrar ao acaso.
+- O único sinal consistente é seguir tendência em tempo gráfico maior. Rompimento 4h
+  superou 100% das rodadas aleatórias e ganhou 0,15% por operação antes dos custos,
+  mas cada operação custa ~0,29%. Não paga.
+- Nenhuma das 12 hipóteses chegou perto do critério. Variações de parâmetro destas três
+  estratégias não devem ser testadas de novo.
