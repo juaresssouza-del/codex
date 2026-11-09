@@ -134,6 +134,7 @@ class Lacuna:
 class RelatorioDados:
     candles: int = 0
     duplicatas_removidas: int = 0
+    parciais_removidos: int = 0
     lacunas: list[Lacuna] = field(default_factory=list)
 
     @property
@@ -150,12 +151,14 @@ def validar(df: pd.DataFrame, passo_ms: int) -> tuple[pd.DataFrame, RelatorioDad
     if df.ts_abertura.duplicated().any():
         ts = int(df.ts_abertura[df.ts_abertura.duplicated()].iloc[0])
         raise ValueError(f"Candle duplicado com valores diferentes em {pd.to_datetime(ts, unit='ms')} UTC.")
+    # Candle que fechou antes da hora (parada da corretora) não é um candle completo: sai e vira lacuna.
+    parcial = (df.ts_fechamento - df.ts_abertura).to_numpy() != passo_ms - 1
+    df = df[~parcial].reset_index(drop=True)
     p = df[PRECOS].to_numpy()
     ruim = ~np.isfinite(p).all(axis=1) | (p <= 0).any(axis=1)
     ruim |= df.maxima.to_numpy() < np.maximum(df.abertura, df.fechamento).to_numpy()
     ruim |= df.minima.to_numpy() > np.minimum(df.abertura, df.fechamento).to_numpy()
     ruim |= df.volume.to_numpy() < 0
-    ruim |= (df.ts_fechamento - df.ts_abertura).to_numpy() != passo_ms - 1
     ruim |= (df.ts_abertura % passo_ms).to_numpy() != 0
     if ruim.any():
         i = int(np.flatnonzero(ruim)[0])
@@ -163,7 +166,14 @@ def validar(df: pd.DataFrame, passo_ms: int) -> tuple[pd.DataFrame, RelatorioDad
     salto = np.diff(df.ts_abertura.to_numpy())
     lacunas = [Lacuna(int(df.ts_abertura[i]), int(df.ts_abertura[i + 1]), int(salto[i] // passo_ms - 1))
                for i in np.flatnonzero(salto != passo_ms)]
-    return df, RelatorioDados(len(df), antes - len(df), lacunas)
+    return df, RelatorioDados(len(df), antes - len(df) - int(parcial.sum()), int(parcial.sum()), lacunas)
+
+
+def movimento(df: pd.DataFrame) -> dict:
+    """Quanto o preço anda num candle típico. Compare com o custo de uma operação completa."""
+    a = df.abertura.to_numpy(float)
+    return {"amplitude_mediana_pct": float(np.median((df.maxima - df.minima).to_numpy() / a * 100)),
+            "corpo_mediano_pct": float(np.median(np.abs(df.fechamento.to_numpy() - a) / a * 100))}
 
 
 def carregar(pasta: Path, simbolo: str, intervalo: str) -> tuple[pd.DataFrame, RelatorioDados]:

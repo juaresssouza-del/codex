@@ -62,3 +62,18 @@ def test_criterios_reprovam_e_explicam():
     assert [c.nome for c in v.itens if not c.passou] == ["min_operacoes"]
     ok = validacao.avaliar({**m, "operacoes": 250}, 97.0, crit)
     assert ok.aprovado is True
+
+
+def test_reserva_corta_o_periodo_final():
+    df = serie(4 * MES_15M)  # começa em 2026-01
+    corte = validacao.cortar_reserva(df, "2026-03")
+    assert corte.ts_abertura.max() < 1_772_323_200_000  # 2026-03-01 UTC
+    assert len(corte) == (31 + 28) * 96
+    assert len(validacao.cortar_reserva(df, None)) == len(df)
+
+
+def test_resultado_antes_dos_custos(amostra):
+    e = ESTRATEGIAS["sma"]
+    r = executar(amostra, e.sinais(amostra, **e.padrao), aquecimento=e.aquecimento(e.padrao), mercado=SEM_FILTROS)
+    m = metricas.calcular(r)
+    assert m["resultado_bruto"] == pytest.approx(m["resultado_liquido"] + m["custos_totais"])

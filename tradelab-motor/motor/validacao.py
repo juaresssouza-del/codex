@@ -51,6 +51,15 @@ class ResultadoWF:
         return self.janelas[0].teste_inicio_ts
 
 
+def cortar_reserva(df: pd.DataFrame, reserva: str | None) -> pd.DataFrame:
+    """Tira o período reservado (do mês `reserva`, AAAA-MM, em diante). Ele só é olhado uma
+    vez, no fim, para confirmar a estratégia que sobreviver; antes disso, nenhum teste o vê."""
+    if not reserva:
+        return df
+    limite = pd.Period(reserva, "M").start_time.value // 1_000_000
+    return df[df.ts_abertura < limite].reset_index(drop=True)
+
+
 def _inicios_de_mes(ts: np.ndarray) -> list[int]:
     meses = pd.to_datetime(ts, unit="ms").to_period("M")
     primeiro, ultimo = meses.min(), meses.max()

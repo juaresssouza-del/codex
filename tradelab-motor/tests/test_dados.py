@@ -107,3 +107,20 @@ def test_le_amostra_do_tradelab(amostra):
     assert len(amostra) == 499
     _, rel = dados.validar(amostra, 900_000)
     assert rel.lacunas == []
+
+
+def test_movimento_tipico_do_candle():
+    base = 1_767_225_600_000
+    df = dados.ler_csv("\n".join(linha(base + i * 900_000, 100, 101, 99, 100.5) for i in range(5)))
+    m = dados.movimento(df)
+    assert m["amplitude_mediana_pct"] == pytest.approx(2.0) and m["corpo_mediano_pct"] == pytest.approx(0.5)
+
+
+def test_candle_parcial_de_manutencao_vira_lacuna():
+    """Caso real: BTCUSDT 1h em 2021-02-11 03:00 UTC fechou aos 40 min, com volume zero."""
+    base, passo = 1_613_008_800_000, 3_600_000
+    linhas = [linha(base + i * passo, 10, 11, 9, 10, passo=passo) for i in range(4)]
+    linhas[1] = f"{base + passo},10,10,10,10,0,{base + passo + 2_454_773},0,0,0,0,0"
+    df, rel = dados.validar(dados.ler_csv("\n".join(linhas)), passo)
+    assert len(df) == 3 and rel.parciais_removidos == 1
+    assert len(rel.lacunas) == 1 and rel.lacunas[0].candles_faltando == 1

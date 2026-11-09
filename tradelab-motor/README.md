@@ -13,7 +13,7 @@ Python 3.11 ou mais novo.
 ```sh
 cd tradelab-motor
 python -m pip install numpy pandas pytest
-python -m pytest            # 41 testes
+python -m pytest            # 45 testes
 ```
 
 ## Uso
@@ -21,7 +21,7 @@ python -m pytest            # 41 testes
 ```sh
 # 1. Histórico público, conferido por SHA-256 (cerca de 4 MB para 2 anos de BTCUSDT 15m)
 python -m motor baixar --de 2024-11 --ate 2026-10 --diarios-ate 2026-11-08
-python -m motor dados                       # qualidade: candles, duplicatas, lacunas
+python -m motor dados                       # qualidade: lacunas, candles parciais, movimento típico
 
 # 2. Validação: é este comando que decide
 python -m motor validar --estrategia sma    # sma | rompimento | rsi
@@ -52,6 +52,12 @@ Opções de risco e custo (todas em %): `--capital --risco --exposicao --stop --
 4. **Critérios fixados antes** em `criterios.toml`: no mínimo 200 operações, fator de
    lucro ≥ 1,3, expectativa positiva, drawdown ≤ 10% e percentil ≥ 95 contra o
    aleatório. Não afrouxe a régua depois de ver o resultado.
+5. **Período reservado.** De `reserva_inicio` (em `criterios.toml`) em diante, o motor
+   corta os dados sozinho. Só a estratégia que passar em tudo é rodada nele, uma vez,
+   com `--usar-reserva`. Cada hipótese testada é registrada antes em `HIPOTESES.md`.
+6. **Dados reais têm defeitos.** Candles parciais de paradas da Binance (fecham antes
+   da hora, com volume zero) são removidos e viram lacuna. Ordem pendente não atravessa
+   lacuna e o indicador precisa reaquecer depois dela.
 
 O motor reproduz o simulador do TradeLab no mesmo dado (teste
 `test_paridade_com_o_simulador_do_tradelab`): mesmo resultado até a 6ª casa decimal.

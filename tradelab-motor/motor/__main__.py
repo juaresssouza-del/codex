@@ -51,6 +51,12 @@ def _carregar(a):
         df = df[df.ts_abertura >= pd.Period(a.de, "M").start_time.value // 1_000_000]
     if a.ate:
         df = df[df.ts_abertura < (pd.Period(a.ate, "M") + 1).start_time.value // 1_000_000]
+    reserva = tomllib.loads(Path(a.criterios).read_text()).get("reserva_inicio")
+    if a.usar_reserva:
+        print(f"ATENÇÃO: usando o período reservado ({reserva} em diante). Isto é a confirmação final, uma vez só.")
+    elif reserva:
+        df = validacao.cortar_reserva(df, reserva)
+        print(f"Período reservado ({reserva} em diante) fora do teste.")
     if df.empty:
         sys.exit("Nenhum candle no período pedido.")
     return df.reset_index(drop=True), rel
@@ -75,6 +81,7 @@ def _tabela(titulo: str, m: dict):
         ("Expectativa / operação", f"{_fmt(m['expectativa'], 3)} USDT ({_fmt(m['expectativa_pct'], 3)} % da posição)"),
         ("Ganho médio / perda média", f"{_fmt(m['ganho_medio'], 3)} / {_fmt(m['perda_media'], 3)} USDT"),
         ("Resultado líquido", f"{_fmt(m['resultado_liquido'])} USDT ({_fmt(m['retorno_pct'], 2)} %)"),
+        ("Resultado antes dos custos", f"{_fmt(m['resultado_bruto'])} USDT"),
         ("Custos pagos (taxa + slippage)", f"{_fmt(m['custos_totais'])} USDT"),
         ("Drawdown (fechamento / intra-candle)", f"{_fmt(m['drawdown_fechamento_pct'])} % / {_fmt(m['drawdown_minimo_pct'])} %"),
         ("Tempo posicionado", f"{_fmt(m['tempo_posicionado_pct'], 1)} %"),
@@ -99,8 +106,11 @@ def cmd_dados(a):
     df, rel = dados.carregar(a.pasta, a.simbolo, a.intervalo)
     print(f"{a.simbolo} {a.intervalo}: {_fmt(rel.candles)} candles, de {_data(df.ts_abertura.iloc[0])} "
           f"a {_data(df.ts_fechamento.iloc[-1])}")
-    print(f"Duplicatas idênticas removidas: {rel.duplicatas_removidas}")
+    print(f"Duplicatas idênticas removidas: {rel.duplicatas_removidas} | candles parciais (parada da corretora) removidos: {rel.parciais_removidos}")
     print(f"Lacunas: {len(rel.lacunas)} ({_fmt(rel.candles_faltando)} candles faltando)")
+    mv = dados.movimento(df)
+    print(f"Candle típico: amplitude {_fmt(mv['amplitude_mediana_pct'], 3)} %, corpo {_fmt(mv['corpo_mediano_pct'], 3)} % "
+          f"(uma operação completa custa ~0,3 %)")
     for l in rel.lacunas[:20]:
         print(f"  depois de {_data(l.depois_de_ts)} -> retoma {_data(l.retoma_em_ts)} ({l.candles_faltando} candles)")
 
@@ -176,6 +186,8 @@ def main(argv=None):
         p.add_argument("--ate", help="AAAA-MM (opcional)")
 
     def risco(p):
+        p.add_argument("--criterios", default=str(RAIZ / "criterios.toml"))
+        p.add_argument("--usar-reserva", action="store_true", help="inclui o período reservado (confirmação final)")
         g = p.add_argument_group("risco e custos (em %)")
         g.add_argument("--capital", type=float, default=1000)
         g.add_argument("--risco", type=float, default=0.25, help="perda no stop, %% do caixa")
@@ -214,7 +226,6 @@ def main(argv=None):
             p.add_argument("--objetivo", default="resultado_liquido", choices=["resultado_liquido", "expectativa"])
             p.add_argument("--min-operacoes-treino", type=int, default=30)
             p.add_argument("--aleatorias", type=int, default=200)
-            p.add_argument("--criterios", default=str(RAIZ / "criterios.toml"))
             p.add_argument("--saida", default=str(RAIZ / "resultados"))
         p.set_defaults(f=f)
 

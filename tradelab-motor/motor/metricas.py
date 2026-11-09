@@ -39,6 +39,7 @@ def calcular(r: Resultado) -> dict:
         "drawdown_fechamento_pct": r.drawdown_fechamento * 100,
         "drawdown_minimo_pct": r.drawdown_minimo * 100,
         "custos_totais": float(ops.custos.sum()),
+        "resultado_bruto": r.capital_final - r.capital_inicial + float(ops.custos.sum()),
         "tempo_posicionado_pct": r.candles_posicionado / r.candles_operaveis * 100 if r.candles_operaveis else 0.0,
         "maior_sequencia_perdas": _maior_sequencia(pnl < 0),
         "operacoes_por_mes": n / meses if meses else None,
