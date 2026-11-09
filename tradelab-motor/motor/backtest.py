@@ -56,6 +56,7 @@ class Resultado:
     drawdown_fechamento: float
     drawdown_minimo: float
     rejeitadas_filtro: int = 0
+    nao_executadas: int = 0
     bloqueadas_risco: int = 0
     candles_posicionado: int = 0
     candles_operaveis: int = 0
@@ -91,7 +92,7 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
     pendente = 0
     ops, patr, patr_min = [], np.empty(n), np.empty(n)
     pico, dd_f, dd_m = caixa, 0.0, 0.0
-    rejeitadas = bloqueadas = posicionado = 0
+    rejeitadas = bloqueadas = posicionado = nao_executadas = 0
     dia_atual, base_dia, pnl_dia, entradas_dia = None, caixa, 0.0, 0
 
     def vender(preco, motivo, ts, i):
@@ -118,21 +119,29 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
                (risco.perda_diaria_max is not None and -pnl_dia >= risco.perda_diaria_max * base_dia):
                 bloqueadas += 1
             else:
-                entrada = o * (1 + slip)
-                stop = mercado.arredonda_preco(entrada * (1 - risco.stop)) if risco.stop else None
-                q = caixa * risco.exposicao_max / (entrada * (1 + taxa))
-                if stop is not None:
-                    q = min(caixa * risco.risco_por_trade / (entrada * (1 + taxa) - stop * (1 - slip) * (1 - taxa)), q)
-                q = mercado.arredonda_qtd(q)
-                if not mercado.aceita(q, entrada):
-                    rejeitadas += 1
+                if custos.entrada_limitada:
+                    limite = C[i - 1]
+                    bruto = o if o <= limite else (limite if l <= limite else None)
+                    entrada = bruto
                 else:
-                    custo = q * entrada * (1 + taxa)
-                    caixa -= custo
-                    entradas_dia += 1
-                    alvo = mercado.arredonda_preco(entrada * (1 + risco.alvo)) if risco.alvo else None
-                    pos = {"entrada": entrada, "bruto": o, "stop": stop, "alvo": alvo, "q": q,
-                           "custo": custo, "ts": int(ts_a[i]), "i": i}
+                    bruto, entrada = o, o * (1 + slip)
+                if entrada is None:
+                    nao_executadas += 1
+                else:
+                    stop = mercado.arredonda_preco(entrada * (1 - risco.stop)) if risco.stop else None
+                    q = caixa * risco.exposicao_max / (entrada * (1 + taxa))
+                    if stop is not None:
+                        q = min(caixa * risco.risco_por_trade / (entrada * (1 + taxa) - stop * (1 - slip) * (1 - taxa)), q)
+                    q = mercado.arredonda_qtd(q)
+                    if not mercado.aceita(q, entrada):
+                        rejeitadas += 1
+                    else:
+                        custo = q * entrada * (1 + taxa)
+                        caixa -= custo
+                        entradas_dia += 1
+                        alvo = mercado.arredonda_preco(entrada * (1 + risco.alvo)) if risco.alvo else None
+                        pos = {"entrada": entrada, "bruto": bruto, "stop": stop, "alvo": alvo, "q": q,
+                               "custo": custo, "ts": int(ts_a[i]), "i": i}
         pendente = 0
 
         if pos is not None:
@@ -166,7 +175,7 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
         ts=ts_f, patrimonio=patr, patrimonio_minimo=patr_min,
         capital_inicial=float(risco.capital), capital_final=caixa,
         drawdown_fechamento=dd_f, drawdown_minimo=dd_m,
-        rejeitadas_filtro=rejeitadas, bloqueadas_risco=bloqueadas,
+        rejeitadas_filtro=rejeitadas, bloqueadas_risco=bloqueadas, nao_executadas=nao_executadas,
         candles_posicionado=posicionado, candles_operaveis=int(valido.sum()),
         risco=risco, custos=custos,
     )

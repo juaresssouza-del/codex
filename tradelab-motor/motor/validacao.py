@@ -79,6 +79,7 @@ def _emendar(partes: list[Resultado], capital_inicial: float, risco: Risco, cust
         drawdown_fechamento=float(np.max((pico - patr) / pico, initial=0)),
         drawdown_minimo=float(np.max((pico - pmin) / pico, initial=0)),
         rejeitadas_filtro=sum(p.rejeitadas_filtro for p in partes),
+        nao_executadas=sum(p.nao_executadas for p in partes),
         bloqueadas_risco=sum(p.bloqueadas_risco for p in partes),
         candles_posicionado=sum(p.candles_posicionado for p in partes),
         candles_operaveis=sum(p.candles_operaveis for p in partes),

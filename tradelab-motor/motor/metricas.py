@@ -46,5 +46,6 @@ def calcular(r: Resultado) -> dict:
         "sharpe_anual": float(ret_dia.mean() / ret_dia.std() * np.sqrt(365)) if len(ret_dia) > 2 and ret_dia.std() > 0 else None,
         "por_motivo": ops.motivo.value_counts().to_dict(),
         "rejeitadas_filtro": r.rejeitadas_filtro,
+        "nao_executadas": r.nao_executadas,
         "bloqueadas_risco": r.bloqueadas_risco,
     }

@@ -62,3 +62,26 @@ Leitura:
   mas cada operação custa ~0,29%. Não paga.
 - Nenhuma das 12 hipóteses chegou perto do critério. Variações de parâmetro destas três
   estratégias não devem ser testadas de novo.
+
+## Rodada 3 — 09/11/2026 — BTCUSDT 4h, seguir tendência sem alvo fixo
+
+Registrada antes de rodar. Hipótese: o único sinal das rodadas 1–2 (rompimento em 4h,
+positivo antes dos custos) era cortado por um desenho de day trade: alvo fixo de 2% e
+stop de 1%, menor que um candle típico de 4h (1,31%). Seguir tendência ganha deixando a
+operação correr e saindo só quando a tendência vira.
+
+Desenho comum aos dois cenários:
+- Estratégia `rompimento`, mesma grade (entrada 20/40/60/96, saída 10/20/48 candles).
+  A saída pela mínima de M candles é o stop móvel: sobe com o preço, nunca desce.
+- Sem alvo. Stop de emergência de 5%, fixo, não otimizado.
+- Risco por operação 0,5%: com stop de 5%, a posição fica em 10% do caixa, como nas
+  rodadas anteriores.
+- 4h, 2021-01 a 2026-06, treino 12 meses, teste 1, mínimo de 15 operações no treino.
+
+| # | Cenário de custo | Parâmetros |
+|---|---|---|
+| 13a | Hoje: ordem a mercado, sem BNB | taxa 0,1%, slippage 0,05% por lado |
+| 13b | Ordem limitada na entrada + BNB | taxa 0,075%; entrada sem slippage, só executa se o preço voltar ao fechamento do sinal; saída a mercado com slippage 0,05% |
+
+Regra de parada combinada: se 13a e 13b forem reprovadas, encerra a busca por estratégia
+em BTC. Se uma passar, roda uma vez no período reservado antes de qualquer outro passo.

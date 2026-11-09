@@ -38,7 +38,7 @@ def _risco(a) -> Risco:
 
 
 def _custos(a) -> Custos:
-    return Custos(taxa=a.taxa / 100, slippage=a.slippage / 100)
+    return Custos(taxa=a.taxa / 100, slippage=a.slippage / 100, entrada_limitada=a.entrada_limitada)
 
 
 def _mercado(a) -> Mercado:
@@ -89,6 +89,8 @@ def _tabela(titulo: str, m: dict):
         ("Operações por mês", _fmt(m["operacoes_por_mes"], 1)),
         ("Saídas por motivo", ", ".join(f"{k}: {v}" for k, v in m["por_motivo"].items()) or "—"),
     ]
+    if m["nao_executadas"]:
+        linhas.append(("Ordens limitadas não executadas", _fmt(m["nao_executadas"])))
     if m["rejeitadas_filtro"] or m["bloqueadas_risco"]:
         linhas.append(("Entradas recusadas (filtro / risco)", f"{m['rejeitadas_filtro']} / {m['bloqueadas_risco']}"))
     largura = max(len(k) for k, _ in linhas)
@@ -198,6 +200,8 @@ def main(argv=None):
         g.add_argument("--max-operacoes-dia", type=int, default=0, help="0 = sem limite")
         g.add_argument("--taxa", type=float, default=0.1)
         g.add_argument("--slippage", type=float, default=0.05)
+        g.add_argument("--entrada-limitada", action="store_true",
+                       help="entra por ordem limitada no fechamento do sinal (sem slippage, pode não executar)")
         g.add_argument("--sem-filtros", action="store_true", help="ignora lote/notional mínimos (modo TradeLab)")
 
     p = sub.add_parser("baixar", help="baixa o histórico público e confere o SHA-256")

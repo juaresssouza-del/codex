@@ -152,3 +152,30 @@ def test_posicao_aberta_e_encerrada_no_fim():
     df = plana(20)
     r = executar(df, sinais(20, **{"5": 1}), risco=Risco(stop=None, alvo=None), custos=SEM_CUSTOS, mercado=SEM_FILTROS)
     assert r.operacoes.iloc[0].motivo == "fim" and r.operacoes.iloc[0].pnl == pytest.approx(0)
+
+
+LIMITADA = Custos(taxa=0.00075, slippage=0.0005, entrada_limitada=True)
+
+
+def test_ordem_limitada_executa_no_limite_quando_o_preco_volta():
+    df = plana(30)
+    df.loc[10, "fechamento"] = 100.0           # limite = fechamento do candle do sinal
+    df.loc[11, ["abertura", "maxima", "minima", "fechamento"]] = [100.5, 101.0, 99.8, 100.5]
+    r = executar(df, sinais(30, **{"10": 1}), risco=Risco(stop=None, alvo=None), custos=LIMITADA, mercado=SEM_FILTROS)
+    op = r.operacoes.iloc[0]
+    assert op.preco_entrada == pytest.approx(100.0)  # sem slippage na entrada
+    assert op.quantidade * 100.0 * 1.00075 == pytest.approx(100)
+
+
+def test_ordem_limitada_executa_na_abertura_se_ela_ja_esta_abaixo():
+    df = plana(30)
+    df.loc[11, ["abertura", "minima"]] = [99.5, 99.5]
+    r = executar(df, sinais(30, **{"10": 1}), risco=Risco(stop=None, alvo=None), custos=LIMITADA, mercado=SEM_FILTROS)
+    assert r.operacoes.iloc[0].preco_entrada == pytest.approx(99.5)
+
+
+def test_ordem_limitada_nao_executada_quando_o_preco_dispara():
+    df = plana(30)
+    df.loc[11:, ["abertura", "maxima", "minima", "fechamento"]] = 105.0
+    r = executar(df, sinais(30, **{"10": 1}), risco=Risco(stop=None, alvo=None), custos=LIMITADA, mercado=SEM_FILTROS)
+    assert len(r.operacoes) == 0 and r.nao_executadas == 1
