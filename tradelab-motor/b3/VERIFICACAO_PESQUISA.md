@@ -63,3 +63,20 @@ não é risco baixo.
 6. Margem de day trade por contrato de WIN e de WDO, e o horário da zeragem automática.
 7. Quantos anos de histórico de candles de 5 e 15 minutos de WIN e WDO (série contínua)
    o servidor do MT5 fornece? Há conta demo com esses dados?
+
+## Segunda rodada do Gemini (XP, Genial, BTG) — 09/11/2026
+
+Mesmo padrão da primeira: nenhum link, nenhum trecho de regra, "permitido" nas três e o
+histórico ("padrão via servidor MT5") de novo sem número de anos. Repete números já
+contestados: margem WIN "a partir de R$ 100" na Genial, abaixo do mínimo de R$ 155
+citado para a B3, e margem WDO de R$ 150 contra R$ 140.
+
+O que as fontes mostram:
+
+| Corretora | Evidência encontrada | Situação |
+|---|---|---|
+| XP | O InfoMoney (do grupo XP) orienta que na XP não se rodem dois robôs no mesmo ativo ao mesmo tempo na mesma conta, o que indica que robô é usado lá ([InfoMoney](https://www.infomoney.com.br/?p=237553)) | Indício de que permite; falta a regra escrita |
+| Genial | Página do MT5: corretagem zero só com adesão ao RLP e ao menos uma ordem por mês pela plataforma; tabela de taxas datada de 24/10/2022 ([Genial](https://www.genialinvestimentos.com.br/trader/plataformas/meta-trader/)). A central de suporte tem perguntas sobre robôs, sem resposta acessível ([suporte](https://suporte.genialinvestimentos.com.br/hc/pt-br/categories/360001451071-Plataformas)) | Custo condicionado; robô não confirmado |
+| BTG | Relato em fórum de que o MT5 da BTG não oferece as séries contínuas de WIN e WDO ([MQL5](https://www.mql5.com/pt/forum/stock-exchange)) | Possível problema de histórico; robô não confirmado |
+
+Ordem provisória: XP, Genial, BTG. Só a resposta escrita das corretoras decide.
