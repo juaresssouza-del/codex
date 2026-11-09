@@ -111,3 +111,29 @@ Leitura:
   (18 saídas "fim"). Para quem segue tendência isso corta operações vencedoras e paga
   custo a mais. Um robô real não fecharia a posição na virada do mês.
 - O período reservado (07/2026 em diante) continua intocado.
+
+## Rodada 4 — 09/11/2026 — hipótese 14: mais evidência para a 13
+
+Registrada antes de rodar. Mesma regra da 13, sem reotimizar nada à mão. Muda só o que
+pode trazer mais evidência e o que tornava o teste irreal:
+
+- **Modo contínuo** (`--continuo`): a posição atravessa a virada de mês. Os parâmetros
+  continuam escolhidos todo mês só com os 12 meses anteriores.
+- **Mais histórico:** 2017-08 a 2026-06 (fora da amostra a partir de 2018-08).
+- **Segundo ativo:** ETHUSDT, mesma regra e mesma grade.
+
+Fixo: `rompimento`, grade da rodada 1, 4h, stop de emergência 5%, sem alvo, risco 0,5%
+(posição de 10% do caixa), treino 12 meses, teste 1, mínimo de 15 operações no treino.
+
+| # | Ativos | Custo |
+|---|---|---|
+| 14a | BTCUSDT + ETHUSDT | a mercado, sem BNB (taxa 0,1%, slippage 0,05%) |
+| 14b | BTCUSDT + ETHUSDT | ordem limitada na entrada + BNB (taxa 0,075%) |
+
+Regra de aprovação, fixada agora: a **14b conjunta** (`python -m motor agregar`, operações
+somadas, pior drawdown e pior percentil entre os ativos) passa em todos os critérios de
+`criterios.toml` **e** a **14a conjunta** tem expectativa positiva. BTC sozinho é
+reportado, mas não decide.
+
+Se aprovada: roda uma vez no período reservado (07/2026 em diante), 14b, nos dois ativos.
+Se reprovada: encerra a busca por estratégia em cripto e o projeto segue para a B3.

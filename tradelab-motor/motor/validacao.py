@@ -88,7 +88,11 @@ def _emendar(partes: list[Resultado], capital_inicial: float, risco: Risco, cust
 
 def walk_forward(df: pd.DataFrame, estrategia: Estrategia, risco: Risco = Risco(), custos: Custos = Custos(),
                  mercado: Mercado = Mercado(), treino_meses: int = 6, teste_meses: int = 1,
-                 objetivo: str = "resultado_liquido", min_operacoes_treino: int = 30) -> ResultadoWF:
+                 objetivo: str = "resultado_liquido", min_operacoes_treino: int = 30,
+                 continuo: bool = False) -> ResultadoWF:
+    """`continuo=False`: cada mês de teste é uma rodada separada e a posição fecha no fim dele.
+    `continuo=True`: uma rodada só, trocando os parâmetros a cada mês; a posição atravessa
+    a virada, como faria um robô real que se reotimiza todo mês."""
     ts = df.ts_abertura.to_numpy(np.int64)
     marcos = _inicios_de_mes(ts)
     pos = lambda t: int(np.searchsorted(ts, t))
@@ -101,7 +105,7 @@ def walk_forward(df: pd.DataFrame, estrategia: Estrategia, risco: Risco = Risco(
             sinais_cache[k] = estrategia.sinais(df, **params)
         return sinais_cache[k]
 
-    janelas, partes, capital = [], [], risco.capital
+    escolhas = []  # (t0, t1, t2, b, c, parametros, metricas do treino)
     k = 0
     while k + treino_meses < len(marcos) - 1:
         t0, t1 = marcos[k], marcos[k + treino_meses]
@@ -117,6 +121,15 @@ def walk_forward(df: pd.DataFrame, estrategia: Estrategia, risco: Risco = Risco(
                 continue
             if melhor_m is None or m[objetivo] > melhor_m[objetivo]:
                 melhor, melhor_m = params, m
+        escolhas.append((t0, t1, t2, b, c, melhor, melhor_m))
+        k += teste_meses
+    if not escolhas:
+        raise ValueError(f"Histórico curto: são necessários mais de {treino_meses + teste_meses} meses.")
+    if continuo:
+        return _walk_forward_continuo(df, estrategia, escolhas, sinais, risco, custos, mercado)
+
+    janelas, partes, capital = [], [], risco.capital
+    for t0, t1, t2, b, c, melhor, melhor_m in escolhas:
         inicial = capital
         if melhor is not None:
             aq = estrategia.aquecimento(melhor)
@@ -129,14 +142,37 @@ def walk_forward(df: pd.DataFrame, estrategia: Estrategia, risco: Risco = Risco(
             capital = r.capital_final
         janelas.append(Janela(len(janelas), t0, t1, t1, t2, melhor, melhor_m, inicial, capital,
                               len(partes[-1].operacoes) if melhor is not None else 0))
-        k += teste_meses
-    if not janelas:
-        raise ValueError(f"Histórico curto: são necessários mais de {treino_meses + teste_meses} meses.")
     resultado = _emendar(partes, risco.capital, risco, custos)
     if partes:  # o índice da janela no resultado emendado é o da janela, não o da parte
         mapa = [j.indice for j in janelas if j.parametros is not None]
         resultado.operacoes["janela"] = resultado.operacoes["janela"].map(lambda p: mapa[p])
     return ResultadoWF(estrategia.nome, janelas, resultado)
+
+
+def _walk_forward_continuo(df, estrategia, escolhas, sinais, risco, custos, mercado) -> ResultadoWF:
+    b0, c_fim = escolhas[0][3], escolhas[-1][4]
+    composto = np.zeros(len(df), dtype=np.int8)
+    anterior = None
+    for _, _, _, b, c, params, _ in escolhas:
+        if params is not None:
+            composto[b:c] = sinais(params)[b:c]
+            anterior = params
+        elif anterior is not None:  # mês sem parâmetro aprovado: não entra, mas ainda sabe sair
+            composto[b:c] = np.where(sinais(anterior)[b:c] == -1, -1, 0)
+    escolhidos = [p for *_, p, _ in escolhas if p is not None]
+    aq = max((estrategia.aquecimento(p) for p in escolhidos), default=0)
+    ini = max(b0 - aq, 0)
+    r = executar(df.iloc[ini:c_fim], composto[ini:c_fim], risco, custos, mercado, aq, inicio=b0 - ini)
+    corte = b0 - ini
+    r.patrimonio, r.patrimonio_minimo, r.ts = r.patrimonio[corte:], r.patrimonio_minimo[corte:], r.ts[corte:]
+    inicios = np.array([e[1] for e in escolhas], dtype=np.int64)
+    r.operacoes["janela"] = np.searchsorted(inicios, r.operacoes.ts_entrada.to_numpy(np.int64), side="right") - 1
+    janelas, capital = [], risco.capital
+    for j, (t0, t1, t2, b, c, params, m) in enumerate(escolhas):
+        final = float(r.patrimonio[c - b0 - 1])  # marcado a mercado no último candle do mês
+        janelas.append(Janela(j, t0, t1, t1, t2, params, m, capital, final, int((r.operacoes.janela == j).sum())))
+        capital = final
+    return ResultadoWF(estrategia.nome, janelas, r)
 
 
 @dataclass
@@ -202,3 +238,19 @@ def avaliar(m: dict, percentil: float, crit: dict) -> Veredito:
         passou = valor is not None and bool(ok(valor, crit[nome]))
         itens.append(Item(nome, valor, crit[nome], passou, texto))
     return Veredito(all(i.passou for i in itens) and bool(itens), itens)
+
+
+def agregar(relatorios: list[dict], crit: dict) -> tuple[dict, Veredito]:
+    """Junta os relatórios JSON de vários ativos: soma as operações, e para drawdown e
+    percentil contra o aleatório vale o pior ativo."""
+    pnl = np.array([o["pnl"] for r in relatorios for o in r["operacoes"]], dtype=float)
+    ganho, perda = pnl[pnl > 0].sum(), -pnl[pnl < 0].sum()
+    m = {
+        "operacoes": len(pnl),
+        "fator_lucro": ganho / perda if perda > 0 else None,
+        "expectativa": float(pnl.mean()) if len(pnl) else None,
+        "resultado_liquido": float(pnl.sum()),
+        "drawdown_minimo_pct": max(r["metricas_fora_da_amostra"]["drawdown_minimo_pct"] for r in relatorios),
+        "percentil": min(r["aleatorias"]["percentil"] for r in relatorios),
+    }
+    return m, avaliar(m, m["percentil"], crit)

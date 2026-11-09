@@ -133,7 +133,8 @@ def cmd_validar(a):
     crit = tomllib.loads(Path(a.criterios).read_text())
     print(f"{e.descricao}: {len(e.combinacoes())} combinações | treino {a.treino} meses, teste {a.teste} | "
           f"{_fmt(len(df))} candles, {len(rel.lacunas)} lacunas")
-    wf = validacao.walk_forward(df, e, risco, custos, mercado, a.treino, a.teste, a.objetivo, a.min_operacoes_treino)
+    wf = validacao.walk_forward(df, e, risco, custos, mercado, a.treino, a.teste, a.objetivo, a.min_operacoes_treino,
+                                continuo=a.continuo)
     inicio = int(np.searchsorted(df.ts_abertura.to_numpy(), wf.inicio_teste_ts))
     m = metricas.calcular(wf.resultado)
     mc = validacao.aleatorio_monte_carlo(df, wf.resultado, n=a.aleatorias, mercado=mercado, inicio=inicio)
@@ -155,7 +156,7 @@ def cmd_validar(a):
     saida = Path(a.saida) / f"validacao-{a.simbolo}-{a.intervalo}-{e.nome}{'-limitada' if custos.entrada_limitada else ''}-{datetime.now():%Y%m%d-%H%M%S-%f}.json"
     saida.parent.mkdir(parents=True, exist_ok=True)
     saida.write_text(json.dumps({
-        "estrategia": e.nome, "simbolo": a.simbolo, "intervalo": a.intervalo,
+        "estrategia": e.nome, "simbolo": a.simbolo, "intervalo": a.intervalo, "continuo": a.continuo,
         "risco": risco.__dict__, "custos": custos.__dict__, "criterios": crit,
         "janelas": [j.__dict__ for j in wf.janelas], "metricas_fora_da_amostra": m,
         "comprar_e_segurar": bh, "aleatorias": {"percentil": mc.percentil, "retornos_pct": mc.resultados.tolist()},
@@ -163,6 +164,19 @@ def cmd_validar(a):
         "operacoes": wf.operacoes.to_dict(orient="records"),
     }, ensure_ascii=False, indent=1, default=float))
     print(f"Relatório completo: {saida}")
+
+
+def cmd_agregar(a):
+    rels = [json.loads(Path(f).read_text()) for f in a.relatorios]
+    crit = tomllib.loads(Path(a.criterios).read_text())
+    m, v = validacao.agregar(rels, crit)
+    print("Ativos: " + ", ".join(f"{r['simbolo']} {r['intervalo']} ({len(r['operacoes'])} ops)" for r in rels))
+    print(f"Operações somadas: {m['operacoes']} | fator de lucro {_fmt(m['fator_lucro'])} | "
+          f"expectativa {_fmt(m['expectativa'], 3)} USDT | resultado {_fmt(m['resultado_liquido'])} USDT")
+    print(f"Pior drawdown {_fmt(m['drawdown_minimo_pct'])} % | pior percentil contra o aleatório {_fmt(m['percentil'], 1)} %")
+    for i in v.itens:
+        print(f"  [{'ok' if i.passou else 'X '}] {i.texto}: {_fmt(i.valor)} (exigido {_fmt(i.limite)})")
+    print(f"\nVEREDITO CONJUNTO: {'APROVADA para o período reservado' if v.aprovado else 'REPROVADA — não use com dinheiro'}")
 
 
 def cmd_painel(a):
@@ -229,9 +243,16 @@ def main(argv=None):
             p.add_argument("--teste", type=int, default=1, help="meses de teste por janela")
             p.add_argument("--objetivo", default="resultado_liquido", choices=["resultado_liquido", "expectativa"])
             p.add_argument("--min-operacoes-treino", type=int, default=30)
+            p.add_argument("--continuo", action="store_true",
+                           help="a posição atravessa a virada de mês (robô real), em vez de fechar no fim de cada janela")
             p.add_argument("--aleatorias", type=int, default=200)
             p.add_argument("--saida", default=str(RAIZ / "resultados"))
         p.set_defaults(f=f)
+
+    p = sub.add_parser("agregar", help="avaliação conjunta de relatórios de vários ativos")
+    p.add_argument("relatorios", nargs="+", help="arquivos JSON gerados por 'validar'")
+    p.add_argument("--criterios", default=str(RAIZ / "criterios.toml"))
+    p.set_defaults(f=cmd_agregar)
 
     p = sub.add_parser("painel", help="exporta candles para o importador do TradeLab")
     base(p)
