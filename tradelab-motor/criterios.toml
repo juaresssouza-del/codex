@@ -1,0 +1,9 @@
+# Critérios fixados ANTES de rodar a validação. Não mexa neles depois de ver o resultado:
+# afrouxar a régua até a estratégia passar é overfitting com outro nome.
+# Todos são medidos só nos períodos fora da amostra do walk-forward, já com taxa e slippage.
+
+min_operacoes = 200            # menos que isso é amostra pequena demais para concluir algo
+fator_lucro_min = 1.3          # ganho bruto / perda bruta
+expectativa_min = 0.0          # resultado médio por operação (USDT) tem que ser positivo
+drawdown_max_pct = 10.0        # queda máxima do patrimônio, contando a mínima dentro do candle
+percentil_aleatorio_min = 95.0 # tem que superar 95% das rodadas com entradas ao acaso

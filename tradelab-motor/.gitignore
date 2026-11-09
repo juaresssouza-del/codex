@@ -1,0 +1,6 @@
+dados/
+resultados/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.parcial
