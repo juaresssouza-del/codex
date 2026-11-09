@@ -121,7 +121,8 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
             else:
                 if custos.entrada_limitada:
                     limite = C[i - 1]
-                    bruto = o if o <= limite else (limite if l <= limite else None)
+                    # só executa se o preço passar do limite; tocar não garante a vez na fila
+                    bruto = o if o < limite else (limite if l < limite else None)
                     entrada = bruto
                 else:
                     bruto, entrada = o, o * (1 + slip)

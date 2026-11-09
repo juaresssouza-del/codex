@@ -38,5 +38,5 @@ class Custos:
     taxa: float = 0.001        # 0,1% por lado (taxa padrão Spot, sem desconto BNB)
     slippage: float = 0.0005   # 0,05% por lado, contra você
     # Entrada por ordem limitada no fechamento do candle do sinal: sem slippage, mas só executa
-    # se o preço voltar até o limite no candle seguinte. Saídas continuam a mercado.
+    # se o preço negociar abaixo do limite no candle seguinte. Saídas continuam a mercado.
     entrada_limitada: bool = False

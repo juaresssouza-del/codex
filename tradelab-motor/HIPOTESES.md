@@ -85,3 +85,29 @@ Desenho comum aos dois cenários:
 
 Regra de parada combinada: se 13a e 13b forem reprovadas, encerra a busca por estratégia
 em BTC. Se uma passar, roda uma vez no período reservado antes de qualquer outro passo.
+
+Resultados (fora da amostra, 01/2022 a 06/2026):
+
+| # | Ops | Acerto | Fator de lucro | Líquido | Bruto (USDT) | Aleatório | Critérios | Veredito |
+|---|---:|---:|---:|---:|---:|---:|---|---|
+| 13a | 100 | 37,0% | 1,37 | +7,07% | +100,59 | 93,5% | falha em operações e aleatório | Reprovada |
+| 13b | 100 | 37,0% | 1,47 | +8,76% | +107,94 | 96,0% | falha só em operações (100 < 200) | Reprovada |
+
+Comprar e segurar com a mesma exposição: +2,48%. Drawdown máximo 3,0%.
+
+Correção feita durante a rodada, antes de aceitar o resultado: a 1ª execução da 13b
+considerava executada a ordem limitada quando a abertura era **igual** ao limite, o que
+acontece em 48% dos candles de 4h e é otimista (tocar o preço não garante a vez na fila).
+A regra passou a exigir que o preço negocie abaixo do limite. Efeito: 2 ordens não
+executadas; fator de lucro de 1,48 para 1,47. O número da tabela é o corrigido.
+
+Leitura:
+- Primeiro resultado positivo do projeto, e coerente com a hipótese: tirar o alvo e o stop
+  curtos transformou o rompimento em 4h de −3,32% (rodada 2) em +7,07% com o mesmo custo.
+  Ganho médio 2,3–2,5 vezes a perda média; o lucro vem de poucas operações longas.
+- Pela régua fixada, as duas são **reprovadas**: 100 operações em 4,5 anos não bastam
+  para separar vantagem de sorte. A régua não muda.
+- Limitação conhecida: o walk-forward encerra a posição no fim de cada mês de teste
+  (18 saídas "fim"). Para quem segue tendência isso corta operações vencedoras e paga
+  custo a mais. Um robô real não fecharia a posição na virada do mês.
+- O período reservado (07/2026 em diante) continua intocado.

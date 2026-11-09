@@ -179,3 +179,10 @@ def test_ordem_limitada_nao_executada_quando_o_preco_dispara():
     df.loc[11:, ["abertura", "maxima", "minima", "fechamento"]] = 105.0
     r = executar(df, sinais(30, **{"10": 1}), risco=Risco(stop=None, alvo=None), custos=LIMITADA, mercado=SEM_FILTROS)
     assert len(r.operacoes) == 0 and r.nao_executadas == 1
+
+
+def test_ordem_limitada_nao_executa_so_por_tocar_o_limite():
+    """Abertura igual ao limite não garante execução: o preço tem que passar do limite."""
+    df = plana(30)  # abertura do candle 11 = fechamento do candle 10 = 100
+    r = executar(df, sinais(30, **{"10": 1}), risco=Risco(stop=None, alvo=None), custos=LIMITADA, mercado=SEM_FILTROS)
+    assert len(r.operacoes) == 0 and r.nao_executadas == 1

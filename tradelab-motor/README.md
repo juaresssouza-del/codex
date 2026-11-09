@@ -13,7 +13,7 @@ Python 3.11 ou mais novo.
 ```sh
 cd tradelab-motor
 python -m pip install numpy pandas pytest
-python -m pytest            # 45 testes
+python -m pytest            # 49 testes
 ```
 
 ## Uso
@@ -83,6 +83,11 @@ estratégia tem vantagem que pague o custo de operar nesse tempo gráfico.
 Rodada 2 (5m, 1h e 4h, até 06/2026): as 9 hipóteses também foram reprovadas. O único
 sinal consistente foi rompimento em 4h, positivo antes dos custos, mas abaixo do custo de
 operar. Detalhes em `HIPOTESES.md`.
+
+Rodada 3 (hipótese 13: rompimento em 4h sem alvo, saída por stop móvel): primeiro
+resultado positivo, +7,07% (ordem a mercado) e +8,76% (ordem limitada + BNB) fora da
+amostra, fator de lucro 1,37 e 1,47. Reprovada pela régua: 100 operações, abaixo das
+200 exigidas.
 
 ## Estrutura
 

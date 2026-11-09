@@ -152,7 +152,7 @@ def cmd_validar(a):
     for i in v.itens:
         print(f"  [{'ok' if i.passou else 'X '}] {i.texto}: {_fmt(i.valor)} (exigido {_fmt(i.limite)})")
     print(f"\nVEREDITO: {'APROVADA para testar em papel ao vivo' if v.aprovado else 'REPROVADA — não use com dinheiro'}")
-    saida = Path(a.saida) / f"validacao-{a.simbolo}-{a.intervalo}-{e.nome}-{datetime.now():%Y%m%d-%H%M%S}.json"
+    saida = Path(a.saida) / f"validacao-{a.simbolo}-{a.intervalo}-{e.nome}{'-limitada' if custos.entrada_limitada else ''}-{datetime.now():%Y%m%d-%H%M%S-%f}.json"
     saida.parent.mkdir(parents=True, exist_ok=True)
     saida.write_text(json.dumps({
         "estrategia": e.nome, "simbolo": a.simbolo, "intervalo": a.intervalo,
