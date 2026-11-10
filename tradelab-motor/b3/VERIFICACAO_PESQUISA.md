@@ -80,3 +80,15 @@ O que as fontes mostram:
 | BTG | Relato em fórum de que o MT5 da BTG não oferece as séries contínuas de WIN e WDO ([MQL5](https://www.mql5.com/pt/forum/stock-exchange)) | Possível problema de histórico; robô não confirmado |
 
 Ordem provisória: XP, Genial, BTG. Só a resposta escrita das corretoras decide.
+
+## Conta do dono na XP — print de 10/11/2026
+
+A área "Automações" da conta XP lista, todos grátis e sem condição de isenção:
+**MetaTrader 5**, **MetaTrader 5 (Simulador)** e **PnT XP**. Os planos PnT Lite, Advanced e
+Pro custam R$ 100, R$ 250 e R$ 1.000 por mês, sem isenção.
+
+- O MT5 estar numa seção chamada "Automações" é o indício mais forte até agora de que a XP
+  aceita robô. Ainda falta a regra escrita para conta real.
+- O **simulador grátis** resolve o teste sem dinheiro e é o caminho para baixar o histórico
+  de WIN e WDO.
+- Decisão: **XP é a corretora do projeto.**
