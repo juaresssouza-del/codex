@@ -61,6 +61,21 @@ def sinais_rsi(df: pd.DataFrame, periodo: int, compra: float, saida: float) -> n
         return _sinal(r < compra, r > saida)
 
 
+def sinais_abertura(df: pd.DataFrame, candles: int) -> np.ndarray:
+    """Rompimento da faixa de abertura: máxima e mínima dos primeiros `candles` do pregão
+    (dia em Brasília). Depois deles, +1 se fechar acima da faixa, -1 se fechar abaixo."""
+    ts = df.ts_abertura.to_numpy(np.int64)
+    dia = (ts - 3 * 3_600_000) // 86_400_000
+    pos = pd.Series(dia).groupby(dia).cumcount().to_numpy()
+    na_faixa = pos < candles
+    g = pd.DataFrame({"dia": dia, "h": np.where(na_faixa, df.maxima, np.nan), "l": np.where(na_faixa, df.minima, np.nan)})
+    topo = g.groupby("dia").h.transform("max").to_numpy()
+    fundo = g.groupby("dia").l.transform("min").to_numpy()
+    c = df.fechamento.to_numpy(float)
+    depois = ~na_faixa
+    return _sinal(depois & (c > topo), depois & (c < fundo))
+
+
 def aleatoria(n: int, prob_entrada: float, prob_saida: float, semente: int) -> np.ndarray:
     """Linha de base: entra e sai ao acaso. Uma estratégia que não bate isto não tem vantagem."""
     u = np.random.default_rng(semente).random(n)
@@ -100,6 +115,12 @@ ESTRATEGIAS = {
         grade={"entrada": [20, 40, 60, 96], "saida": [10, 20, 48]},
         aquecimento=lambda p: max(p["entrada"], p["saida"]) + 1,
         restricao=lambda p: p["saida"] <= p["entrada"]),
+    "abertura": Estrategia(
+        "abertura", "Rompimento da faixa de abertura do pregão (máxima/mínima dos primeiros candles)",
+        sinais_abertura,
+        padrao={"candles": 6},
+        grade={"candles": [3, 6, 12]},
+        aquecimento=lambda p: p["candles"] + 1),
     "rsi": Estrategia(
         "rsi", "Reversão: compra com RSI baixo, sai quando ele recupera", sinais_rsi,
         padrao={"periodo": 14, "compra": 30, "saida": 55},

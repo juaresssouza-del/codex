@@ -15,7 +15,13 @@ import pandas as pd
 from . import metricas
 from .backtest import Resultado, Risco, executar
 from .estrategias import Estrategia, aleatoria
+from .futuros import Contrato, executar_futuros
 from .mercado import Custos, Mercado
+
+
+def _exec(mercado):
+    """Futuros da B3 usam o motor por pregão; o resto, o motor de cripto."""
+    return executar_futuros if isinstance(mercado, Contrato) else executar
 
 
 @dataclass
@@ -115,7 +121,7 @@ def walk_forward(df: pd.DataFrame, estrategia: Estrategia, risco: Risco = Risco(
             break
         melhor, melhor_m = None, None
         for params in combinacoes:
-            r = executar(df.iloc[a:b], sinais(params)[a:b], risco, custos, mercado, estrategia.aquecimento(params))
+            r = _exec(mercado)(df.iloc[a:b], sinais(params)[a:b], risco, custos, mercado, estrategia.aquecimento(params))
             m = metricas.calcular(r)
             if m[objetivo] is None or m["operacoes"] < min_operacoes_treino:
                 continue
@@ -134,7 +140,7 @@ def walk_forward(df: pd.DataFrame, estrategia: Estrategia, risco: Risco = Risco(
         if melhor is not None:
             aq = estrategia.aquecimento(melhor)
             ini = max(b - aq, 0)
-            r = executar(df.iloc[ini:c], sinais(melhor)[ini:c], Risco(**{**risco.__dict__, "capital": capital}),
+            r = _exec(mercado)(df.iloc[ini:c], sinais(melhor)[ini:c], Risco(**{**risco.__dict__, "capital": capital}),
                          custos, mercado, aq, inicio=b - ini)
             corte = b - ini  # o aquecimento entra só para os indicadores, não no resultado
             r.patrimonio, r.patrimonio_minimo, r.ts = r.patrimonio[corte:], r.patrimonio_minimo[corte:], r.ts[corte:]
@@ -162,7 +168,7 @@ def _walk_forward_continuo(df, estrategia, escolhas, sinais, risco, custos, merc
     escolhidos = [p for *_, p, _ in escolhas if p is not None]
     aq = max((estrategia.aquecimento(p) for p in escolhidos), default=0)
     ini = max(b0 - aq, 0)
-    r = executar(df.iloc[ini:c_fim], composto[ini:c_fim], risco, custos, mercado, aq, inicio=b0 - ini)
+    r = _exec(mercado)(df.iloc[ini:c_fim], composto[ini:c_fim], risco, custos, mercado, aq, inicio=b0 - ini)
     corte = b0 - ini
     r.patrimonio, r.patrimonio_minimo, r.ts = r.patrimonio[corte:], r.patrimonio_minimo[corte:], r.ts[corte:]
     inicios = np.array([e[1] for e in escolhas], dtype=np.int64)
@@ -192,7 +198,7 @@ def aleatorio_monte_carlo(df: pd.DataFrame, ref: Resultado, n: int = 200, sement
     dur = float((ops.i_saida - ops.i_entrada + 1).mean()) if len(ops) else 10.0
     p_sai = min(1 / max(dur, 1), 0.5)
     rodadas = np.array([
-        (executar(df, aleatoria(len(df), p_ent, p_sai, semente + k), ref.risco, ref.custos, mercado,
+        (_exec(mercado)(df, aleatoria(len(df), p_ent, p_sai, semente + k), ref.risco, ref.custos, mercado,
                   inicio=inicio).capital_final / ref.risco.capital - 1) * 100
         for k in range(n)])
     alvo = (ref.capital_final / ref.capital_inicial - 1) * 100
@@ -204,8 +210,16 @@ def comprar_e_segurar(df: pd.DataFrame, risco: Risco = Risco(), custos: Custos =
                       mercado: Mercado = Mercado(), inicio: int = 0) -> Resultado:
     """Compra no começo e segura até o fim, com a mesma exposição máxima e sem stop."""
     s = np.zeros(len(df), dtype=np.int8)
+    if isinstance(mercado, Contrato):
+        # B3: compra na abertura de cada pregão com o mesmo stop e risco, sem alvo, e zera no fim.
+        # Sem stop, a margem inteira viraria posição e a linha de base mediria alavancagem, não sinal.
+        dia = (df.ts_abertura.to_numpy(np.int64) - 3 * 3_600_000) // 86_400_000
+        primeiro = np.append(True, dia[1:] != dia[:-1])
+        s[primeiro & (np.arange(len(df)) >= inicio)] = 1
+        return executar_futuros(df, s, Risco(**{**risco.__dict__, "alvo": None}), custos, mercado, inicio=inicio)
+    sem_stop = Risco(**{**risco.__dict__, "stop": None, "alvo": None})
     s[inicio] = 1
-    return executar(df, s, Risco(**{**risco.__dict__, "stop": None, "alvo": None}), custos, mercado, inicio=inicio)
+    return executar(df, s, sem_stop, custos, mercado, inicio=inicio)
 
 
 @dataclass(frozen=True)

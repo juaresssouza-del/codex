@@ -45,6 +45,15 @@ Conclusões:
   responde "Invalid account". Causa provável: os dados de acesso do simulador foram
   enviados para um e-mail que estava desativado (reativado em 09/11/2026).
 
+### 4. B3: motor adaptado (11/11/2026)
+- Histórico de 5 anos de WIN e WDO exportado do MT5 da XP: íntegro (`b3/DADOS.md`).
+- Pesquisa do Codex com fontes (`b3/corretoras.md`): a corretagem zero da XP exclui robôs;
+  custo usado no motor: WIN R$ 1,35 e WDO R$ 2,24 por contrato e por lado, mais 1 tick.
+- `motor/futuros.py`: contratos e pontos, comprado e vendido, zeragem às 18h00, nada passa
+  de um dia para o outro, pausas e saltos de vencimento tratados. Estratégia nova de
+  rompimento da faixa de abertura. 70 testes.
+- Nenhuma estratégia foi rodada no dado real da B3: as hipóteses são registradas antes.
+
 ## Próximos passos
 
 ### Juares

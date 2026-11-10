@@ -13,7 +13,7 @@ Python 3.11 ou mais novo.
 ```sh
 cd tradelab-motor
 python -m pip install numpy pandas pytest
-python -m pytest            # 51 testes
+python -m pytest            # 70 testes
 ```
 
 ## Uso
@@ -32,6 +32,25 @@ python -m motor backtest --estrategia sma --param rapida=9 --param lenta=21
 # Candles para o botão "Importar JSON" do TradeLab
 python -m motor painel
 ```
+
+### B3 (minicontratos WIN e WDO)
+
+O histórico vem do MT5 da corretora (Exibir → Símbolos → Barras → `WIN$N` / `WDO$N`, M5 →
+Exportar barras) e fica em `dados/B3/WIN_N_M5.csv` e `dados/B3/WDO_N_M5.csv`.
+
+```sh
+python -m motor dados --contrato WIN --intervalo 5m
+python -m motor validar --contrato WIN --intervalo 15m --estrategia abertura --lado ambos \
+    --capital 20000 --risco 1 --stop 0.5 --alvo 0 --exposicao 100
+```
+
+O motor de futuros (`motor/futuros.py`) opera em pontos × valor do ponto (WIN R$ 0,20;
+WDO R$ 10), contratos inteiros limitados pelo risco e pela margem (`--exposicao` = % do
+patrimônio que pode virar margem), custo em R$ por contrato e por lado (`--custo-lado`,
+padrão WIN R$ 1,35 e WDO R$ 2,24) e slippage em ticks. `--lado ambos` permite ficar
+vendido e virar a mão. Não entra depois das 17h30, zera às 18h00 e nada passa de um
+pregão para o outro. Como a noite é uma lacuna, os indicadores reaquecem a cada pregão:
+o salto falso da troca de vencimento da série contínua não contamina o sinal.
 
 Opções de risco e custo (todas em %): `--capital --risco --exposicao --stop --alvo
 --perda-diaria --max-operacoes-dia --taxa --slippage`. Use `--help` em cada comando.

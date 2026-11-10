@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import dados, metricas, painel, validacao
+from . import dados, futuros, metricas, painel, validacao
 from .backtest import Risco, executar
 from .estrategias import ESTRATEGIAS
 from .mercado import SEM_FILTROS, Custos, Mercado
@@ -19,7 +19,9 @@ from .mercado import SEM_FILTROS, Custos, Mercado
 RAIZ = Path(__file__).resolve().parent.parent
 
 
-def _data(ts: int) -> str:
+def _data(ts: int, brt: bool = False) -> str:
+    if brt:
+        return datetime.fromtimestamp(ts / 1000 - 3 * 3600, tz=timezone.utc).strftime("%Y-%m-%d %H:%M (Brasília)")
     return datetime.fromtimestamp(ts / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
@@ -37,16 +39,40 @@ def _risco(a) -> Risco:
                  perda_diaria_max=a.perda_diaria / 100 or None, max_operacoes_dia=a.max_operacoes_dia or None)
 
 
-def _custos(a) -> Custos:
+def _custos(a):
+    if a.contrato:
+        padrao = futuros.CUSTOS[a.contrato]
+        return futuros.CustosFuturo(padrao.custo_lado if a.custo_lado is None else a.custo_lado, a.slippage_ticks)
     return Custos(taxa=a.taxa / 100, slippage=a.slippage / 100, entrada_limitada=a.entrada_limitada)
 
 
-def _mercado(a) -> Mercado:
+def _mercado(a):
+    if a.contrato:
+        return futuros.com_lado(futuros.CONTRATOS[a.contrato], a.lado)
     return SEM_FILTROS if a.sem_filtros else Mercado()
 
 
+def _nome(a) -> str:
+    return a.contrato or a.simbolo
+
+
+def _moeda(a) -> str:
+    return "R$" if a.contrato else "USDT"
+
+
+def _carregar_b3(a):
+    arquivo = Path(a.arquivo) if a.arquivo else Path(a.pasta) / "B3" / f"{a.contrato}_N_M5.csv"
+    df, rel = futuros.carregar_mt5(arquivo)
+    minutos = dados.PASSO_MS[a.intervalo] // 60_000
+    if minutos < 5:
+        sys.exit("O histórico da B3 está em candles de 5 minutos; use --intervalo 5m ou maior.")
+    if minutos > 5:
+        df = futuros.reamostrar(df, minutos)
+    return df, rel
+
+
 def _carregar(a):
-    df, rel = dados.carregar(a.pasta, a.simbolo, a.intervalo)
+    df, rel = _carregar_b3(a) if a.contrato else dados.carregar(a.pasta, a.simbolo, a.intervalo)
     if a.de:
         df = df[df.ts_abertura >= pd.Period(a.de, "M").start_time.value // 1_000_000]
     if a.ate:
@@ -72,17 +98,17 @@ def _params(a, e) -> dict:
     return p
 
 
-def _tabela(titulo: str, m: dict):
+def _tabela(titulo: str, m: dict, moeda: str = "USDT"):
     print(f"\n{titulo}")
     linhas = [
         ("Operações", _fmt(m["operacoes"])),
         ("Taxa de acerto", f"{_fmt(m['taxa_acerto_pct'], 1)} %"),
         ("Fator de lucro", _fmt(m["fator_lucro"])),
-        ("Expectativa / operação", f"{_fmt(m['expectativa'], 3)} USDT ({_fmt(m['expectativa_pct'], 3)} % da posição)"),
-        ("Ganho médio / perda média", f"{_fmt(m['ganho_medio'], 3)} / {_fmt(m['perda_media'], 3)} USDT"),
-        ("Resultado líquido", f"{_fmt(m['resultado_liquido'])} USDT ({_fmt(m['retorno_pct'], 2)} %)"),
-        ("Resultado antes dos custos", f"{_fmt(m['resultado_bruto'])} USDT"),
-        ("Custos pagos (taxa + slippage)", f"{_fmt(m['custos_totais'])} USDT"),
+        ("Expectativa / operação", f"{_fmt(m['expectativa'], 3)} {moeda} ({_fmt(m['expectativa_pct'], 3)} % {'do patrimônio' if moeda == 'R$' else 'da posição'})"),
+        ("Ganho médio / perda média", f"{_fmt(m['ganho_medio'], 3)} / {_fmt(m['perda_media'], 3)} {moeda}"),
+        ("Resultado líquido", f"{_fmt(m['resultado_liquido'])} {moeda} ({_fmt(m['retorno_pct'], 2)} %)"),
+        ("Resultado antes dos custos", f"{_fmt(m['resultado_bruto'])} {moeda}"),
+        ("Custos pagos (taxa + slippage)", f"{_fmt(m['custos_totais'])} {moeda}"),
         ("Drawdown (fechamento / intra-candle)", f"{_fmt(m['drawdown_fechamento_pct'])} % / {_fmt(m['drawdown_minimo_pct'])} %"),
         ("Tempo posicionado", f"{_fmt(m['tempo_posicionado_pct'], 1)} %"),
         ("Maior sequência de perdas", _fmt(m["maior_sequencia_perdas"])),
@@ -105,6 +131,14 @@ def cmd_baixar(a):
 
 
 def cmd_dados(a):
+    if a.contrato:
+        df, rel = _carregar_b3(a)
+        print(f"{a.contrato} {a.intervalo}: {_fmt(len(df))} candles em {rel.pregoes} pregões, de "
+              f"{_data(df.ts_abertura.iloc[0], True)} a {_data(df.ts_fechamento.iloc[-1], True)}")
+        print(f"Duplicatas idênticas removidas: {rel.duplicatas_removidas} | pausas dentro do pregão: {len(rel.pausas)}")
+        for ts, minutos in rel.pausas[:20]:
+            print(f"  retoma em {_data(ts, True)} depois de {minutos} min sem negócio")
+        return
     df, rel = dados.carregar(a.pasta, a.simbolo, a.intervalo)
     print(f"{a.simbolo} {a.intervalo}: {_fmt(rel.candles)} candles, de {_data(df.ts_abertura.iloc[0])} "
           f"a {_data(df.ts_fechamento.iloc[-1])}")
@@ -121,9 +155,11 @@ def cmd_backtest(a):
     e = ESTRATEGIAS[a.estrategia]
     p = _params(a, e)
     df, _ = _carregar(a)
-    r = executar(df, e.sinais(df, **p), _risco(a), _custos(a), _mercado(a), e.aquecimento(p))
+    mercado = _mercado(a)
+    r = validacao._exec(mercado)(df, e.sinais(df, **p), _risco(a), _custos(a), mercado, e.aquecimento(p))
     print(f"{e.descricao} {p}  |  {_data(df.ts_abertura.iloc[0])} a {_data(df.ts_fechamento.iloc[-1])}")
-    _tabela("Backtest no período inteiro (DENTRO da amostra: descreve o passado, não valida nada)", metricas.calcular(r))
+    _tabela("Backtest no período inteiro (DENTRO da amostra: descreve o passado, não valida nada)", metricas.calcular(r),
+           _moeda(a))
 
 
 def cmd_validar(a):
@@ -132,7 +168,7 @@ def cmd_validar(a):
     risco, custos, mercado = _risco(a), _custos(a), _mercado(a)
     crit = tomllib.loads(Path(a.criterios).read_text())
     print(f"{e.descricao}: {len(e.combinacoes())} combinações | treino {a.treino} meses, teste {a.teste} | "
-          f"{_fmt(len(df))} candles, {len(rel.lacunas)} lacunas")
+          f"{_fmt(len(df))} candles, {len(getattr(rel, 'lacunas', getattr(rel, 'pausas', [])))} lacunas")
     wf = validacao.walk_forward(df, e, risco, custos, mercado, a.treino, a.teste, a.objetivo, a.min_operacoes_treino,
                                 continuo=a.continuo)
     inicio = int(np.searchsorted(df.ts_abertura.to_numpy(), wf.inicio_teste_ts))
@@ -142,10 +178,13 @@ def cmd_validar(a):
     print(f"\nJanelas (parâmetros escolhidos só com o treino; resultado no teste):")
     for j in wf.janelas:
         print(f"  {_data(j.teste_inicio_ts)[:7]}  {str(j.parametros or 'nenhum combo com operações suficientes'):<34}"
-              f" {j.operacoes:>4} ops  {_fmt(j.capital_final - j.capital_inicial):>8} USDT")
-    _tabela(f"FORA DA AMOSTRA ({_data(wf.inicio_teste_ts)[:10]} em diante) — é este que vale", m)
+              f" {j.operacoes:>4} ops  {_fmt(j.capital_final - j.capital_inicial):>8} {_moeda(a)}")
+    _tabela(f"FORA DA AMOSTRA ({_data(wf.inicio_teste_ts)[:10]} em diante) — é este que vale", m, _moeda(a))
     print(f"\nLinhas de base no mesmo período:")
-    print(f"  Comprar e segurar (mesma exposição de {_fmt(risco.exposicao_max * 100, 0)} %): {_fmt(bh['retorno_pct'])} %")
+    if a.contrato:
+        print(f"  Comprar na abertura e zerar no fim (mesmo stop e risco): {_fmt(bh['retorno_pct'])} %")
+    else:
+        print(f"  Comprar e segurar (mesma exposição de {_fmt(risco.exposicao_max * 100, 0)} %): {_fmt(bh['retorno_pct'])} %")
     print(f"  Entradas aleatórias ({a.aleatorias} rodadas): mediana {_fmt(float(np.median(mc.resultados)))} %, "
           f"estratégia {_fmt(mc.referencia)} % -> supera {_fmt(mc.percentil, 1)} % delas")
     v = validacao.avaliar(m, mc.percentil, crit)
@@ -153,10 +192,11 @@ def cmd_validar(a):
     for i in v.itens:
         print(f"  [{'ok' if i.passou else 'X '}] {i.texto}: {_fmt(i.valor)} (exigido {_fmt(i.limite)})")
     print(f"\nVEREDITO: {'APROVADA para testar em papel ao vivo' if v.aprovado else 'REPROVADA — não use com dinheiro'}")
-    saida = Path(a.saida) / f"validacao-{a.simbolo}-{a.intervalo}-{e.nome}{'-limitada' if custos.entrada_limitada else ''}-{datetime.now():%Y%m%d-%H%M%S-%f}.json"
+    saida = Path(a.saida) / f"validacao-{_nome(a)}-{a.intervalo}-{e.nome}{'-' + a.lado if a.contrato else ''}{'-limitada' if getattr(custos, 'entrada_limitada', False) else ''}-{datetime.now():%Y%m%d-%H%M%S-%f}.json"
     saida.parent.mkdir(parents=True, exist_ok=True)
     saida.write_text(json.dumps({
-        "estrategia": e.nome, "simbolo": a.simbolo, "intervalo": a.intervalo, "continuo": a.continuo,
+        "estrategia": e.nome, "simbolo": _nome(a), "intervalo": a.intervalo, "continuo": a.continuo,
+        "moeda": _moeda(a), "lado": a.lado if a.contrato else "comprado",
         "risco": risco.__dict__, "custos": custos.__dict__, "criterios": crit,
         "janelas": [j.__dict__ for j in wf.janelas], "metricas_fora_da_amostra": m,
         "comprar_e_segurar": bh, "aleatorias": {"percentil": mc.percentil, "retornos_pct": mc.resultados.tolist()},
@@ -172,7 +212,8 @@ def cmd_agregar(a):
     m, v = validacao.agregar(rels, crit)
     print("Ativos: " + ", ".join(f"{r['simbolo']} {r['intervalo']} ({len(r['operacoes'])} ops)" for r in rels))
     print(f"Operações somadas: {m['operacoes']} | fator de lucro {_fmt(m['fator_lucro'])} | "
-          f"expectativa {_fmt(m['expectativa'], 3)} USDT | resultado {_fmt(m['resultado_liquido'])} USDT")
+          f"expectativa {_fmt(m['expectativa'], 3)} {rels[0].get('moeda', 'USDT')} | "
+          f"resultado {_fmt(m['resultado_liquido'])} {rels[0].get('moeda', 'USDT')}")
     print(f"Pior drawdown {_fmt(m['drawdown_minimo_pct'])} % | pior percentil contra o aleatório {_fmt(m['percentil'], 1)} %")
     for i in v.itens:
         print(f"  [{'ok' if i.passou else 'X '}] {i.texto}: {_fmt(i.valor)} (exigido {_fmt(i.limite)})")
@@ -180,6 +221,8 @@ def cmd_agregar(a):
 
 
 def cmd_painel(a):
+    if a.contrato:
+        sys.exit("A exportação para o painel do TradeLab só vale para a Binance.")
     df, _ = _carregar(a)
     j = painel.para_tradelab(df, a.simbolo, a.intervalo, risco=_risco(a), custos=_custos(a))
     saida = Path(a.saida) / f"tradelab-{a.simbolo}-{a.intervalo}.json"
@@ -196,6 +239,8 @@ def main(argv=None):
         p.add_argument("--simbolo", default="BTCUSDT")
         p.add_argument("--intervalo", default="15m", choices=sorted(dados.PASSO_MS))
         p.add_argument("--pasta", default=str(RAIZ / "dados"))
+        p.add_argument("--contrato", choices=sorted(futuros.CONTRATOS), help="minicontrato da B3 (usa o CSV do MT5)")
+        p.add_argument("--arquivo", help="CSV do MT5 (padrão: dados/B3/<CONTRATO>_N_M5.csv)")
 
     def periodo(p):
         p.add_argument("--de", help="AAAA-MM (opcional)")
@@ -216,6 +261,9 @@ def main(argv=None):
         g.add_argument("--slippage", type=float, default=0.05)
         g.add_argument("--entrada-limitada", action="store_true",
                        help="entra por ordem limitada no fechamento do sinal (sem slippage, pode não executar)")
+        g.add_argument("--lado", default="comprado", choices=["comprado", "ambos"], help="B3: só comprado ou também vendido")
+        g.add_argument("--custo-lado", type=float, default=None, help="B3: R$ por contrato em cada lado (padrão do contrato)")
+        g.add_argument("--slippage-ticks", type=int, default=1, help="B3: ticks contra você em cada execução a mercado")
         g.add_argument("--sem-filtros", action="store_true", help="ignora lote/notional mínimos (modo TradeLab)")
 
     p = sub.add_parser("baixar", help="baixa o histórico público e confere o SHA-256")
