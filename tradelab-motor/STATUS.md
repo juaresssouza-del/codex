@@ -1,0 +1,82 @@
+# TradeLab — situação em 10/11/2026
+
+## Objetivo
+
+Robô de operações que caiba na rotina do Juares (trabalha das 8h às 18h): testar com
+dados reais antes de arriscar dinheiro e só operar o que passar numa régua fixada antes.
+
+## O que foi feito
+
+### 1. Motor de pesquisa (`tradelab-motor/`)
+- Backtest em Python, sem skills de terceiros. 51 testes passando.
+- Reproduz o simulador do TradeLab (PWA) até a 6ª casa decimal.
+- Dados públicos da Binance com checksum, tratamento de lacunas e de candles parciais.
+- Custos, filtros da corretora, ordem limitada, limite de perda diária.
+- Walk-forward (normal e contínuo), comparação com entradas aleatórias e com comprar e
+  segurar, critérios fixos em `criterios.toml` e período reservado (07/2026 em diante)
+  que nenhum teste vê.
+- Exporta candles para o importador do TradeLab.
+
+### 2. Cripto (Binance Spot): 15 hipóteses, todas reprovadas
+Detalhes em `HIPOTESES.md`.
+
+| Rodada | O que testou | Resultado |
+|---|---|---|
+| 1 | SMA, rompimento e RSI em 15m | Reprovadas; o custo (~0,3% por operação) come tudo |
+| 2 | As mesmas em 5m, 1h e 4h | Reprovadas; 5m é o pior; só o rompimento em 4h teve sinal antes dos custos |
+| 3 | Rompimento 4h sem alvo, com stop móvel (13a/13b) | Primeiro resultado positivo (+7% a +9%), mas só 100 operações |
+| 4 | A mesma regra em BTC e ETH desde 2017 (14a/14b) | Reprovada: ETH não superou o aleatório; comprar e segurar rendeu mais nos dois |
+
+Conclusões:
+- Day trade em cripto (5m/15m) perde para o custo da Binance Spot.
+- Seguir tendência em 4h tem algum sinal, mas não supera comprar e segurar.
+- Futuros (operar vendido) não está disponível na conta Binance do Juares; não contornar.
+- **Busca por estratégia em cripto encerrada**, como combinado antes do teste.
+
+### 3. B3: preparação
+- Briefing de pesquisa em `b3/PESQUISA_CORRETORA.md`.
+- Duas pesquisas do Gemini conferidas em `b3/VERIFICACAO_PESQUISA.md`: erro grave
+  (valor do ponto do WIN é R$ 0,20, não R$ 1,00) e regras de robô sem fonte.
+- Na B3 o custo é ~30 vezes menor que na Binance (~0,01% contra ~0,3% por operação).
+  Em compensação, a alavancagem é de ~180 vezes: margem baixa não é risco baixo.
+- **Corretora escolhida: XP.** Na área "Automações" da conta: MetaTrader 5 e
+  MetaTrader 5 (Simulador), ambos grátis.
+- MT5 instalado no Windows do Juares. **Ainda não conecta:** o servidor XPMT5-DEMO
+  responde "Invalid account". Causa provável: os dados de acesso do simulador foram
+  enviados para um e-mail que estava desativado (reativado em 09/11/2026).
+
+## Próximos passos
+
+### Juares
+1. **Conseguir o login e a senha do MT5 Simulador.** Conferir o e-mail reativado (e o
+   spam); se não houver nada, pedir o reenvio no site (Automações) ou no chat da XP:
+   > "Contratei o MetaTrader 5 Simulador, mas meu e-mail estava desativado e não recebi
+   > os dados de acesso. Pode reenviar o login, a senha e o servidor? O MT5 retorna
+   > 'Invalid account' no XPMT5-DEMO."
+2. **Conectar o MT5** (Arquivo → Conectar-se à conta de negociação). Funcionou quando o
+   canto inferior direito mostra barras verdes no lugar do ponto vermelho "0 / 0 Kb".
+3. **Exportar o histórico:**
+   - Ferramentas → Opções → Gráficos → "Máximo de barras no gráfico" = Unlimited;
+     fechar e abrir o MT5.
+   - Exibir → Símbolos (Ctrl+U) → aba Barras → `WIN$N`, M5, início 01/01/2018 →
+     Solicitar → Exportar barras. Repetir para `WDO$N`.
+   - Enviar os dois CSVs (ou um print com a primeira e a última data de cada um).
+4. **Pedir à XP, por escrito:** robô no MT5 é permitido em conta real para WIN e WDO?
+   Python? Limite de ordens? Corretagem e margem de day trade?
+5. **Definir o capital** para a B3, um valor que aceite perder inteiro. Com menos de
+   alguns milhares de reais, as regras de risco não deixam operar.
+
+### Claude (quando o histórico chegar)
+1. Conferir quantos anos vieram e se a série contínua tem saltos falsos na troca de
+   vencimento.
+2. Adaptar o motor à B3: pontos, valor do ponto (WIN R$ 0,20; WDO R$ 10), tick, custos
+   por contrato, horário do pregão e zeragem no fim do dia.
+3. Registrar as hipóteses da B3 em `HIPOTESES.md` **antes** de rodar, com a mesma régua.
+4. Só o que passar segue para o período reservado, depois simulador ao vivo, e só então,
+   com orçamento de risco autorizado por escrito pelo Juares, conta real.
+
+## Regras que continuam valendo
+- Nenhuma ordem real sem autorização do Juares. Robô só com orçamento de risco escrito
+  e botão de desligar.
+- Senhas e chaves nunca no chat nem no Git.
+- A régua não muda depois de ver o resultado.
