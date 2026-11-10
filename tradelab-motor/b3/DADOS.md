@@ -19,18 +19,29 @@ MT5 (WIN: 5 = 1 tick; WDO: 500 = 0,5 ponto).
 
 ## Custo contra movimento
 
-Estimativa por operação completa (entrada + saída, 1 contrato): emolumentos ainda não
-confirmados (fontes falam em ~R$ 0,25 por ponta no WIN e ~R$ 1,20 no WDO) e 1 tick de
-slippage por lado.
+Números confirmados pelo Codex em `b3/corretoras.md` (fontes B3 e XP, 10/11/2026):
+- Tarifa B3 (emolumentos + registro), primeiras faixas, ida e volta: **WIN R$ 0,50**.
+  **WDO ~R$ 2,28**, calculado pela fórmula da B3 com PTAX ~5,60; a PTAX oficial do mês
+  ainda falta.
+- **A promoção de corretagem zero (RLP) da XP exclui estratégias automatizadas.** A
+  tarifa padrão é **R$ 1,00 por contrato em cada lado**, mais 9,65% de tributos. A tarifa
+  específica da rota MT5/EA não foi encontrada; até a XP responder, vale a padrão.
+- Slippage: 1 tick por lado (WIN 5 pontos = R$ 1,00; WDO 0,5 ponto = R$ 5,00).
 
-| | Custo estimado | Em pontos | Candle típico de 5 min | Candle / custo |
-|---|---:|---:|---:|---:|
-| WIN | ~R$ 2,50 | ~12,5 pontos | 150 pontos | **~12 vezes** |
-| WDO | ~R$ 12,40 | ~1,2 ponto | 4,5 pontos | **~3,6 vezes** |
-| BTC na Binance (15 min, para comparar) | ~0,30% | | 0,231% | 0,8 vez |
+| | Corretagem + tributos | B3 | Slippage | Total por operação | Em pontos | Candle típico de 5 min | Candle / custo |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| WIN | R$ 2,19 | R$ 0,50 | R$ 2,00 | **~R$ 4,69** | ~23 pontos (0,018%) | 150 pontos | **~6 vezes** |
+| WDO | R$ 2,19 | ~R$ 2,28 | R$ 10,00 | **~R$ 14,47** | ~1,45 ponto (0,028%) | 4,5 pontos | **~3 vezes** |
+| BTC na Binance (15 min) | | | | ~0,30% | | 0,231% | 0,8 vez |
 
-Na Binance, uma operação custava mais que um candle inteiro de 15 minutos. No WIN, o
-custo é cerca de 1/12 de um candle de 5 minutos.
+Na Binance, uma operação custava mais que um candle inteiro de 15 minutos. No WIN, mesmo
+pagando a corretagem cheia da XP, o custo é cerca de 1/6 de um candle de 5 minutos.
+
+Outros parâmetros confirmados para o motor: margem mínima de day trade **WIN R$ 155 /
+WDO R$ 140** (manual de risco XP v67); pregão **WIN 9h00–18h25, WDO 9h00–18h30** (OC
+055/2026-VNC, que substitui o 050); a XP troca a garantia intradiária **15 minutos antes
+do fim** (10 com leilão), então o robô zera antes disso; posição esquecida custa **R$ 12 a
+R$ 16 por contrato** de zeragem compulsória; limite diário de oscilação **10% WIN / 6% WDO**.
 
 ## O que os dados mostram e o motor precisa tratar
 
