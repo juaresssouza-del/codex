@@ -200,3 +200,22 @@ Leitura combinada antes do teste:
   falhar só na queda máxima, a conclusão é "vantagem, mas capital insuficiente": segue
   para o período reservado e para o simulador, e não para dinheiro real com R$ 1.000.
 - Se falhar em vantagem, está reprovada como as anteriores.
+
+Resultado com R$ 1.000 (fora da amostra a partir de 11/2022): **as quatro quebram a conta.**
+
+| # | Resultado | Pior queda | Capital para a pior queda caber em 10% | Operações até parar |
+|---|---:|---:|---:|---:|
+| 15 WIN abertura 5m | −86,0% | R$ 1.313 | R$ 13.130 | 60 |
+| 16 WIN rompimento 15m | −88,6% | R$ 1.068 | R$ 10.684 | 118 |
+| 17 WDO abertura 5m | −84,0% | R$ 1.166 | R$ 11.658 | 9 |
+| 18 WDO rompimento 15m | −93,5% | R$ 1.200 | R$ 12.003 | 19 |
+
+Depois da queda, o saldo fica abaixo da margem e o robô para de operar (dezenas de milhares
+de entradas recusadas). **Conclusão sobre o capital: R$ 1.000 não sustenta 1 minicontrato.**
+
+A quebra encurtou a amostra e impediu julgar a vantagem. Correção de medição, registrada
+antes de rodar: **15b a 18b**, as mesmas quatro hipóteses, mesma regra, 1 contrato, com
+capital de medição de **R$ 100.000** só para a conta não quebrar no meio. O resultado em
+reais por operação é o mesmo; muda só o tamanho da amostra. O critério de queda máxima
+perde sentido nessa medição (é % de R$ 100 mil); valem operações, fator de lucro,
+expectativa e percentil contra o aleatório.

@@ -241,7 +241,7 @@ def avaliar(m: dict, percentil: float, crit: dict) -> Veredito:
     regras = [
         ("min_operacoes", m.get("operacoes"), lambda v, x: v >= x, "operações fora da amostra"),
         ("fator_lucro_min", m.get("fator_lucro"), lambda v, x: v >= x, "fator de lucro depois dos custos"),
-        ("expectativa_min", m.get("expectativa"), lambda v, x: v > x, "expectativa por operação (USDT)"),
+        ("expectativa_min", m.get("expectativa"), lambda v, x: v > x, "expectativa por operação (na moeda do teste)"),
         ("drawdown_max_pct", m.get("drawdown_minimo_pct"), lambda v, x: v <= x, "drawdown máximo (%)"),
         ("percentil_aleatorio_min", percentil, lambda v, x: v >= x, "percentil contra entradas aleatórias"),
     ]
