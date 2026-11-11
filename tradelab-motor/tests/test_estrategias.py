@@ -39,7 +39,7 @@ def test_grade_e_padrao_sao_validos(nome):
     e = ESTRATEGIAS[nome]
     df = serie(300)
     for params in e.combinacoes():
-        assert set(np.unique(e.sinais(df, **params))) <= {-1, 0, 1}
+        assert set(np.unique(e.sinais(df, **params))) <= {-1, 0, 1, 2}  # 2 = sair (motor da B3)
     assert e.padrao in e.combinacoes()
 
 
@@ -52,3 +52,58 @@ def test_aleatoria_e_reprodutivel():
     a = aleatoria(1000, 0.02, 0.1, semente=4)
     assert np.array_equal(a, aleatoria(1000, 0.02, 0.1, semente=4))
     assert not np.array_equal(a, aleatoria(1000, 0.02, 0.1, semente=5))
+
+
+# --- canal (rodada 7) -----------------------------------------------------------------------
+
+from motor.estrategias import canal  # noqa: E402
+
+
+def test_canal_igual_a_regressao_linear():
+    df = serie(200, semente=12)
+    m, desvio, r2, inclinacao = canal(df.fechamento.to_numpy(float), 24)
+    i = 150
+    y = df.fechamento.to_numpy(float)[i - 23:i + 1]
+    b, a = np.polyfit(np.arange(24), y, 1)
+    ajuste = a + b * np.arange(24)
+    assert inclinacao[i] == pytest.approx(b)
+    assert m[i] == pytest.approx(ajuste[-1])
+    assert desvio[i] == pytest.approx(np.std(y - ajuste))
+    assert r2[i] == pytest.approx(1 - np.sum((y - ajuste) ** 2) / np.sum((y - y.mean()) ** 2))
+    assert np.isnan(m[22]) and not np.isnan(m[23])
+
+
+def _tendencia(n, passo, ruido, semente=0):
+    rng = np.random.default_rng(semente)
+    df = serie(n, semente=semente)
+    c = 100 + passo * np.arange(n) + rng.normal(0, ruido, n)
+    df["fechamento"] = c
+    df["abertura"] = np.r_[c[0], c[:-1]]
+    df["maxima"] = np.maximum(df.abertura, df.fechamento) + ruido
+    df["minima"] = np.minimum(df.abertura, df.fechamento) - ruido
+    return df
+
+
+def test_canal_de_alta_compra_e_lateral_sai():
+    alta = _tendencia(120, 0.2, 0.05)
+    s = ESTRATEGIAS["canal_rompimento"].sinais(alta, n=24, r2=0.7)
+    assert (s[30:] == 1).sum() > 10 and (s == -1).sum() == 0
+    lateral = _tendencia(120, 0.0, 0.5, semente=3)
+    s = ESTRATEGIAS["canal_rompimento"].sinais(lateral, n=24, r2=0.7)
+    assert set(np.unique(s[30:])) <= {0, 2} and (s[30:] == 2).sum() > 50
+
+
+def test_canal_de_baixa_vende_no_rompimento():
+    baixa = _tendencia(120, -0.2, 0.05)
+    s = ESTRATEGIAS["canal_rompimento"].sinais(baixa, n=24, r2=0.7)
+    assert (s[30:] == -1).sum() > 10 and (s == 1).sum() == 0
+
+
+def test_canal_media_compra_no_toque_da_linha_media():
+    alta = _tendencia(120, 0.2, 0.05)
+    i = 80
+    m, *_ = canal(alta.fechamento.to_numpy(float), 24)
+    alta.loc[i, "minima"] = m[i] - 0.1          # toca a média...
+    alta.loc[i, "fechamento"] = max(alta.fechamento[i], m[i] + 0.05)  # ...e fecha acima
+    s = ESTRATEGIAS["canal_media"].sinais(alta, n=24, r2=0.7)
+    assert s[i] == 1

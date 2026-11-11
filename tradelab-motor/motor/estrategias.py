@@ -81,6 +81,63 @@ def sinais_forca_reversao(df: pd.DataFrame, periodo: int, k: float) -> np.ndarra
     return (-_forca(df, periodo, k)).astype(np.int8)
 
 
+def canal(c: np.ndarray, n: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Canal por regressão linear dos últimos `n` fechamentos (até o candle atual, inclusive).
+
+    Devolve, por candle: linha média no candle atual, desvio padrão dos resíduos, R² e
+    inclinação (pontos por candle). NaN antes de haver `n` candles."""
+    out = [np.full(len(c), np.nan) for _ in range(4)]
+    if len(c) < n:
+        return tuple(out)
+    y = sliding_window_view(c, n)
+    x = np.arange(n) - (n - 1) / 2
+    media_y = y.mean(axis=1)
+    inclinacao = (y @ x) / (x @ x)
+    ajuste = media_y[:, None] + inclinacao[:, None] * x[None, :]
+    sse = ((y - ajuste) ** 2).sum(axis=1)
+    sst = ((y - media_y[:, None]) ** 2).sum(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        r2 = np.where(sst > 0, 1 - sse / sst, 0.0)
+    out[0][n - 1:] = media_y + inclinacao * x[-1]
+    out[1][n - 1:] = np.sqrt(sse / n)
+    out[2][n - 1:] = r2
+    out[3][n - 1:] = inclinacao
+    return tuple(out)
+
+
+SAIR = 2  # o motor da B3 entende como "encerrar a posição, sem abrir a contrária"
+
+
+def _canal_sinais(df: pd.DataFrame, n: int, r2: float, compra: np.ndarray, venda: np.ndarray,
+                  alta: np.ndarray, baixa: np.ndarray) -> np.ndarray:
+    s = np.where(alta & compra, 1, np.where(baixa & venda, -1, 0))
+    lateral = ~(alta | baixa)
+    return np.where((s == 0) & lateral, SAIR, s).astype(np.int8)
+
+
+def sinais_canal_rompimento(df: pd.DataFrame, n: int, r2: float) -> np.ndarray:
+    """Só opera em canal (R² >= r2): rompimento da máxima/mínima dos 12 candles anteriores no
+    sentido do canal. Lateral: não abre e manda sair."""
+    c = df.fechamento.to_numpy(float)
+    _, _, r2_, incl = canal(c, n)
+    with np.errstate(invalid="ignore"):
+        alta, baixa = (incl > 0) & (r2_ >= r2), (incl < 0) & (r2_ >= r2)
+        topo = df.maxima.rolling(12).max().shift(1).to_numpy()
+        fundo = df.minima.rolling(12).min().shift(1).to_numpy()
+        return _canal_sinais(df, n, r2, c > topo, c < fundo, alta, baixa)
+
+
+def sinais_canal_media(df: pd.DataFrame, n: int, r2: float) -> np.ndarray:
+    """Só opera em canal: recuo até a linha média rejeitado (toca a média e fecha a favor)."""
+    c = df.fechamento.to_numpy(float)
+    m, _, r2_, incl = canal(c, n)
+    with np.errstate(invalid="ignore"):
+        alta, baixa = (incl > 0) & (r2_ >= r2), (incl < 0) & (r2_ >= r2)
+        compra = (df.minima.to_numpy(float) <= m) & (c > m)
+        venda = (df.maxima.to_numpy(float) >= m) & (c < m)
+        return _canal_sinais(df, n, r2, compra, venda, alta, baixa)
+
+
 def sinais_abertura(df: pd.DataFrame, candles: int) -> np.ndarray:
     """Rompimento da faixa de abertura: máxima e mínima dos primeiros `candles` do pregão
     (dia em Brasília). Depois deles, +1 se fechar acima da faixa, -1 se fechar abaixo."""
@@ -159,6 +216,18 @@ ESTRATEGIAS = {
         padrao={"periodo": 20, "k": 2.0},
         grade={"periodo": [10, 20], "k": [1.5, 2.0, 3.0]},
         aquecimento=lambda p: p["periodo"] + 1),
+    "canal_rompimento": Estrategia(
+        "canal_rompimento", "Só em canal (regressão, R² mínimo): rompimento a favor; lateral não opera e sai",
+        sinais_canal_rompimento,
+        padrao={"n": 24, "r2": 0.5},
+        grade={"n": [24, 36], "r2": [0.5, 0.7]},
+        aquecimento=lambda p: max(p["n"], 13) + 1),
+    "canal_media": Estrategia(
+        "canal_media", "Só em canal: recuo até a linha média rejeitado; lateral não opera e sai",
+        sinais_canal_media,
+        padrao={"n": 24, "r2": 0.5},
+        grade={"n": [24, 36], "r2": [0.5, 0.7]},
+        aquecimento=lambda p: p["n"] + 1),
     "rsi": Estrategia(
         "rsi", "Reversão: compra com RSI baixo, sai quando ele recupera", sinais_rsi,
         padrao={"periodo": 14, "compra": 30, "saida": 55},
