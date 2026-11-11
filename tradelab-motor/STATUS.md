@@ -105,3 +105,20 @@ prévio da revisão, sem usar a reserva nem operar dinheiro real.
   e botão de desligar.
 - Senhas e chaves nunca no chat nem no Git.
 - A régua não muda depois de ver o resultado.
+
+## Entrega prática 0.3.0 — 10/11/2026
+
+- `conferir-b3`: manifesto com SHA-256, origem declarada e diagnóstico no recorte de
+  desenvolvimento. Lacunas, conflitos, preços incoerentes ou fora do tick bloqueiam.
+- A conferência foi conectada ao carregamento B3 no fluxo normal: sinais só são
+  calculados depois que os dados passam nas verificações disponíveis. O comando não
+  certifica todos os pregões, horários ou ajustes de vencimento.
+- `diario-b3`: CSV normalizado de operações encerradas no simulador → JSON e HTML
+  adaptável a celular/computador, com preços, custos e motivos. Os preços executados
+  já incorporam slippage, que não é descontado novamente. Não é um robô conectado.
+- Ambos os comandos novos mantêm a reserva bloqueada. A análise prospectiva recente
+  e a ligação ao PWA/MT5 ficam para outra etapa definida; o PWA não está neste branch.
+- 128 testes passaram; 4 da amostra real pulados. Casos novos usam preços artificiais.
+  Nenhuma hipótese executada ou aprovada nesta entrega; critérios e estratégias preservados.
+- Uso e modelo em [b3/COLOCAR_EM_PRATICA.md](b3/COLOCAR_EM_PRATICA.md).
+- Faltam os CSVs locais e relatórios completos para a conferência/reexecução dos números antigos.

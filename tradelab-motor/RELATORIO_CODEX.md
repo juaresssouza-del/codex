@@ -8,6 +8,13 @@ Foram corrigidos erros de execução e validação. Os números abaixo são regi
 versão anterior e não foram recalculados; não constituem resultado validado da versão
 auditada. A auditoria não aprovou estratégias nem utilizou a reserva em execuções.
 
+**Entrega prática posterior — 0.3.0:** `conferir-b3` verifica o CSV M5 com procedência,
+hash e bloqueio de falhas antes de testes B3 no fluxo de desenvolvimento. `diario-b3`
+gera fichas e comparações previsto × executado de operações encerradas no simulador,
+em JSON/HTML. Os comandos novos não liberam a reserva e não conectam corretora. Veja
+[b3/COLOCAR_EM_PRATICA.md](b3/COLOCAR_EM_PRATICA.md). São 128 testes passando e 4 pulados,
+com dados artificiais nos casos novos. Os números históricos seguem sem recálculo.
+
 ## 1. Onde está cada coisa
 
 | Arquivo | Conteúdo |
@@ -20,7 +27,7 @@ auditada. A auditoria não aprovou estratégias nem utilizou a reserva em execu�
 | `b3/corretoras.md` | Pesquisa do Codex (custos, margens, horários, tarifas B3) |
 | `b3/VERIFICACAO_PESQUISA.md` | Conferência das pesquisas do Gemini |
 | `motor/` | Código: `backtest.py` (cripto), `futuros.py` (B3), `validacao.py`, `estrategias.py` |
-| `tests/` | 74 testes (`python -m pytest`) |
+| `tests/` | 128 casos passam e 4 são pulados (`python -m pytest`) |
 
 Fora do Git (não estão no repositório): `dados/` (Binance e os CSVs do MT5 exportados pelo
 Juares) e `resultados/` (relatórios JSON completos de cada validação). Para refazer, baixe

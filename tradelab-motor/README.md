@@ -1,6 +1,9 @@
 # TradeLab — motor de pesquisa
 
-**Versão 0.2.0:** leia [AUDITORIA_CODEX.md](AUDITORIA_CODEX.md) antes de interpretar os
+**Versão 0.3.0:** [conferência B3 e diário do simulador](b3/COLOCAR_EM_PRATICA.md)
+com relatórios JSON/HTML, procedência do histórico e comparação previsto × executado.
+
+**Auditoria 0.2.0:** leia [AUDITORIA_CODEX.md](AUDITORIA_CODEX.md) antes de interpretar os
 resultados antigos. Foram corrigidos problemas de execução, drawdown, agregação e
 validação. Os resultados históricos abaixo não foram recalculados com essas correções.
 
@@ -16,8 +19,8 @@ Python 3.11 ou mais novo.
 
 ```sh
 cd tradelab-motor
-python -m pip install numpy pandas pytest
-python -m pytest            # 104 passam; 4 da amostra real são pulados para proteger a reserva
+python -m pip install numpy pandas pytest tzdata
+python -m pytest            # 128 passam; 4 da amostra real são pulados para proteger a reserva
 ```
 
 ## Uso
@@ -61,6 +64,19 @@ Opções de risco e custo (todas em %): `--capital --risco --exposicao --stop --
 --perda-diaria --max-operacoes-dia --taxa --slippage`. Use `--help` em cada comando.
 
 `dados/` e `resultados/` ficam fora do Git.
+
+### Conferência e diário do simulador
+
+```sh
+python -m motor conferir-b3 --contrato WIN --arquivo dados/B3/WIN_N_M5.csv --origem "Exportação MT5 XP"
+python -m motor diario-b3 --arquivo dados/B3/diario-simulador.csv
+```
+
+Use o modelo `b3/diario-modelo.csv` e siga [o passo a passo](b3/COLOCAR_EM_PRATICA.md).
+O diário gera `resultados/diario/diario.html` e `diario.json`. Os comandos novos
+protegem a reserva e não enviam ordens. A conferência bloqueia falhas de dados no
+fluxo B3 de desenvolvimento antes de calcular sinais; não certifica calendário nem
+origem. O diário compara referências e fills informados, sem estimar custos ausentes.
 
 ## Como o motor valida
 
@@ -132,4 +148,6 @@ comprar e segurar com a mesma exposição rendeu mais. A busca em cripto foi enc
 | `motor/metricas.py` | Expectativa, fator de lucro, drawdown e custos |
 | `motor/validacao.py` | Walk-forward, Monte Carlo aleatório, comprar e segurar, critérios |
 | `motor/painel.py` | Exportação para o importador do TradeLab |
+| `motor/conferencia.py` | Conferência MT5 M5, hash, cobertura e recorte anterior à reserva |
+| `motor/diario.py` | Diário passivo do simulador, custos e relatório HTML/JSON |
 | `criterios.toml` | A régua, fixada antes dos testes |

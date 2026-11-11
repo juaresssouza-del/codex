@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import dados, futuros, metricas, painel, validacao
+from . import conferencia, dados, diario, futuros, metricas, painel, validacao
 from .backtest import Risco, executar
 from .estrategias import ESTRATEGIAS
 from .mercado import SEM_FILTROS, Custos, Mercado
@@ -64,7 +64,20 @@ def _moeda(a) -> str:
 
 def _carregar_b3(a):
     arquivo = Path(a.arquivo) if a.arquivo else Path(a.pasta) / "B3" / f"{a.contrato}_N_M5.csv"
-    df, rel = futuros.carregar_mt5(arquivo)
+    conf = None
+    if getattr(a, "usar_reserva", False):
+        # Caminho explícito de confirmação final já existente; não usado no desenvolvimento.
+        df, rel = futuros.carregar_mt5(arquivo)
+    else:
+        df, rel, conf = conferencia.conferir_b3(
+            arquivo, a.contrato, getattr(a, "origem", "MT5 (origem não verificada)"),
+            criterios=getattr(a, "criterios", conferencia.CRITERIOS),
+            de=f"{a.de}-01" if getattr(a, "de", None) else None,
+            ate=str(pd.Period(a.ate, "M").end_time.date()) if getattr(a, "ate", None) else None,
+            exigir_extremos=False)
+        if not conf["liberado_para_teste_dos_dados"]:
+            raise ValueError("Histórico B3 bloqueado: " + " ".join(conf["erros"]) +
+                             " Use conferir-b3 para gravar o diagnóstico.")
     minutos = dados.PASSO_MS[a.intervalo] // 60_000
     if minutos < 5:
         sys.exit("O histórico da B3 está em candles de 5 minutos; use --intervalo 5m ou maior.")
@@ -73,6 +86,8 @@ def _carregar_b3(a):
         removidos = df.attrs.get("blocos_incompletos_removidos", 0)
         if removidos:
             print(f"B3: {removidos} blocos incompletos removidos na agregação; lacunas preservadas.")
+    if conf is not None:
+        df.attrs["conferencia_dados"] = conf
     return df, rel
 
 
@@ -206,6 +221,7 @@ def cmd_validar(a):
     saida.parent.mkdir(parents=True, exist_ok=True)
     saida.write_text(json.dumps({
         "versao_motor": __version__,
+        "conferencia_dados": df.attrs.get("conferencia_dados"),
         "estrategia": e.nome, "simbolo": _nome(a), "intervalo": a.intervalo, "continuo": a.continuo,
         "moeda": _moeda(a), "lado": a.lado if a.contrato else "comprado",
         "risco": risco.__dict__, "custos": custos.__dict__, "criterios": crit,
@@ -240,6 +256,31 @@ def cmd_painel(a):
     saida.parent.mkdir(parents=True, exist_ok=True)
     saida.write_text(json.dumps(j))
     print(f"{len(j['candles'])} candles contínuos em {saida} (use 'Importar JSON' no TradeLab)")
+
+
+def cmd_conferir_b3(a):
+    _, _, conf = conferencia.conferir_b3(Path(a.arquivo), a.contrato, a.origem,
+                                        criterios=Path(a.criterios), de=a.de, ate=a.ate)
+    destino = Path(a.saida) / f"conferencia-{a.contrato}-{datetime.now(conferencia.BRT):%Y%m%d-%H%M%S-%f}.json"
+    diario.salvar_json(destino, conf)
+    print(f"Conferência: {destino}")
+    print(f"SHA-256: {conf['sha256_arquivo']}")
+    print(f"Candles de desenvolvimento: {conf['qualidade']['candles']}; reserva excluída.")
+    if not conf["liberado_para_teste_dos_dados"]:
+        print("BLOQUEADO: " + " ".join(conf["erros"]))
+        raise SystemExit(2)
+    print("Dados passaram nas verificações disponíveis; isso não aprova uma estratégia.")
+
+
+def cmd_diario_b3(a):
+    rel = diario.analisar(Path(a.arquivo), criterios=Path(a.criterios))
+    pasta = Path(a.saida)
+    diario.salvar_json(pasta / "diario.json", rel)
+    diario.salvar_html(pasta / "diario.html", rel)
+    print(f"{rel['resumo']['operacoes']} operações encerradas no simulador.")
+    print(f"Resultado líquido: R$ {_fmt(rel['resumo']['resultado_liquido'])}")
+    print(f"Relatório para abrir no navegador: {pasta / 'diario.html'}")
+    print(f"Registro completo: {pasta / 'diario.json'}")
 
 
 def main(argv=None):
@@ -289,6 +330,22 @@ def main(argv=None):
     base(p)
     p.set_defaults(f=cmd_dados)
 
+    p = sub.add_parser("conferir-b3", help="conferência M5 com SHA-256 e bloqueio da reserva")
+    p.add_argument("--arquivo", required=True, help="CSV tabulado de barras M5 exportado pelo MT5")
+    p.add_argument("--contrato", required=True, choices=sorted(futuros.CONTRATOS))
+    p.add_argument("--origem", required=True, help="origem declarada do arquivo; não informe credenciais")
+    p.add_argument("--criterios", default=str(conferencia.CRITERIOS))
+    p.add_argument("--de", help="primeira data exigida no arquivo, AAAA-MM-DD")
+    p.add_argument("--ate", help="última data exigida no arquivo, AAAA-MM-DD")
+    p.add_argument("--saida", default=str(RAIZ / "resultados" / "conferencia"))
+    p.set_defaults(f=cmd_conferir_b3)
+
+    p = sub.add_parser("diario-b3", help="CSV normalizado do simulador → JSON e relatório HTML")
+    p.add_argument("--arquivo", required=True, help="CSV separado por ;, no modelo b3/diario-modelo.csv")
+    p.add_argument("--criterios", default=str(conferencia.CRITERIOS))
+    p.add_argument("--saida", default=str(RAIZ / "resultados" / "diario"))
+    p.set_defaults(f=cmd_diario_b3)
+
     for nome, f, ajuda in (("backtest", cmd_backtest, "uma rodada no período todo (descritivo)"),
                            ("validar", cmd_validar, "walk-forward + linhas de base + critérios")):
         p = sub.add_parser(nome, help=ajuda)
@@ -322,7 +379,10 @@ def main(argv=None):
     p.set_defaults(f=cmd_painel)
 
     a = ap.parse_args(argv)
-    a.f(a)
+    try:
+        a.f(a)
+    except (ValueError, OSError) as erro:
+        ap.exit(2, f"Erro: {erro}\n")
 
 
 if __name__ == "__main__":
