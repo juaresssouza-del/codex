@@ -523,3 +523,35 @@ dia, saída por "virou lateral", sem alvo) em tudo o que o texto do Juares descr
 por sorte. Candidato só se a **mesma estratégia, no mesmo tempo gráfico, passar em todos os
 critérios no WIN e no WDO**. Só então vai ao período reservado, que contém as eleições de
 outubro/2026.
+
+Resultados da rodada 9 (1 contrato, R$ 100 mil; 11/2022 a 06/2026):
+
+| Estratégia, tempo | Mercado | Ops | Acerto | Fator de lucro | Antes dos custos (R$) | Custos (R$) | Líquido (R$) | Pior queda (R$) | Supera o aleatório |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| aceleração 15 min (47/48) | WIN | 101 | 41,6% | 1,17 | +1.331 | 475 | **+856** | 939 | 88,5% |
+| | WDO | 145 | 45,5% | 1,10 | +3.190 | 2.100 | **+1.090** | 2.094 | 94,5% |
+| suporte 15 min (39/40) | WIN | 372 | 30,4% | 0,81 | −1.511 | 1.748 | −3.259 | 6.566 | 22,0% |
+| | WDO | 310 | 29,4% | 0,80 | +20 | 4.489 | −4.469 | 4.623 | 41,0% |
+| suporte 30 min (41/42) | WIN | 245 | 41,6% | 1,00 | +1.097 | 1.152 | −55 | 2.322 | 67,5% |
+| | WDO | 188 | 31,4% | 0,87 | +640 | 2.722 | −2.082 | 4.442 | 56,5% |
+| suporte 60 min (43/44) | WIN | 146 | 45,2% | 0,98 | +527 | 686 | −159 | 1.822 | 57,0% |
+| | WDO | 140 | 37,9% | 0,63 | −3.370 | 2.027 | −5.397 | 6.521 | 4,5% |
+
+**Inconclusivas por falta de operações (zero operações no teste):** suporte 4 h (45/46) e
+aceleração 30 min, 60 min e 4 h (49–54). Nenhuma janela de treino chegou às 30 operações
+exigidas: o canal nesses tempos gera, no máximo, 39, 16, 13 e 2 sinais de entrada por ano
+(frequência medida sem resultado financeiro). Mesmo sem o mínimo do treino, não chegariam
+às 200 operações da régua em 43 meses. A régua não foi alterada.
+
+Leitura:
+- **Nenhuma candidata:** nenhuma passou em todos os critérios em um mercado, muito menos nos dois.
+- **Comprar na LTA / vender na LTB (suporte) não tem vantagem** em nenhum tempo gráfico: perde
+  ou empata nos dois mercados e não supera o aleatório.
+- **A aceleração em 15 min é a primeira estratégia do projeto com resultado positivo depois
+  dos custos nos dois mercados ao mesmo tempo** (fator 1,17 no WIN e 1,10 no WDO). Mas fica
+  abaixo da régua em três pontos nos dois: fator de lucro < 1,3, menos de 200 operações e não
+  supera 95% do aleatório. Com 54 hipóteses no projeto, não basta. Junto com o candle de força
+  a favor no WDO (22b), forma um padrão: **entrar a favor de um movimento forte** é o único tipo
+  de entrada que aparece positivo. Registrado como observação; só volta como hipótese nova,
+  com dados que não viu (simulador ao vivo).
+- 54 hipóteses no projeto; nenhuma aprovada. Reserva intocada.

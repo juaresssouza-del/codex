@@ -75,6 +75,13 @@ Conclusões:
 - Melhor medição: candle de força a favor no WDO (fator de lucro 1,31, +R$ 3,8 mil), mas
   só 166 operações e o mesmo método perde no WIN. Não vira candidato pela regra registrada.
 
+### 8. Rodadas 7 a 9 (11/11/2026): canal
+- Rodada 8 (ações) cancelada antes de rodar: foco em WIN e WDO.
+- Rodada 9: canal desenhado só com o passado, atravessando os dias, alvo na linha de retorno,
+  em 15/30/60 min e 4 h. Comprar na LTA / vender na LTB não tem vantagem. A aceleração em
+  15 min é positiva depois dos custos nos dois mercados (fator 1,17 e 1,10), mas abaixo da
+  régua. Tempos maiores: operações de menos para validar com 5 anos.
+
 ## Próximos passos
 
 **Atualização de auditoria (Codex, motor 0.2.0):** foram corrigidos erros reproduzíveis
