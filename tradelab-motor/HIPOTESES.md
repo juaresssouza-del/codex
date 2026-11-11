@@ -366,3 +366,51 @@ Leitura:
   falso positivo que a regra existe para barrar. Fica registrado como observação; só pode
   voltar como hipótese nova, registrada antes, com dados que ele ainda não viu.
 - 25 hipóteses testadas no projeto; nenhuma aprovada. O período reservado continua intocado.
+
+## Rodada 7 — 11/11/2026 — filtro de agenda e operação só em canal
+
+Registrada antes de implementar e de rodar.
+
+### Hipótese 26 — filtro de agenda econômica (aguarda dados)
+
+A observação da rodada 6 (candle de força a favor no WDO, `forca`, média de 20 candles,
+k = 3) **com filtro de agenda**: nenhuma entrada nos dias de **decisão do FOMC** (Fed),
+**payroll** americano e **IPCA**, nem no pregão seguinte a uma **decisão do Copom** (anunciada
+depois do fechamento). Mesmo stop, zeragem e custos da rodada 6; 1 contrato; R$ 100 mil de
+medição; mesma régua.
+
+Hipótese: o candle de força em dia de notícia é ruído de evento, não movimento que continua.
+Dados necessários antes de rodar: o calendário oficial dessas datas de 11/2021 a 06/2026
+(Fed, BLS, IBGE, Banco Central), com fonte. **Não roda com datas estimadas.** Como é uma
+hipótese num só mercado (WDO), só vira candidato se também passar no WIN com o mesmo filtro.
+
+### Hipóteses 27 a 30 — o método do Juares: operar só em canal, nunca no lateral
+
+Descrição do Juares: operava sempre dentro de um canal de alta ou de baixa, comprando ou
+vendendo no rompimento do canal ou na média dentro do canal, e não operava em mercado lateral.
+
+Regra (5 minutos, dentro do pregão; o canal recomeça a cada dia, como os outros indicadores):
+- **Canal:** regressão linear dos últimos N fechamentos. Inclinação > 0 e R² ≥ r → canal de
+  alta; inclinação < 0 e R² ≥ r → canal de baixa; R² < r → **lateral**.
+- **Lateral:** não abre posição; se estiver posicionado, **sai** no candle seguinte.
+- `canal_rompimento`: em canal de alta, compra quando fecha acima da máxima dos 12 candles
+  anteriores; em canal de baixa, vende quando fecha abaixo da mínima.
+- `canal_media`: em canal de alta, compra quando o candle toca a linha média do canal e fecha
+  acima dela; em canal de baixa, vende quando toca e fecha abaixo.
+- Grade: N = 24 ou 36 candles (2 h ou 3 h); r = 0,5 ou 0,7 → 4 combinações.
+- Comum: comprado e vendido, 1 contrato, stop 0,5%, sem alvo, zeragem 18h00, sem entrada
+  depois das 17h30, custo de robô XP mais 1 tick, treino 12 meses, teste 1, mínimo de 30
+  operações no treino, dados 11/2021 a 06/2026, WIN com `b3/PAUSAS_CONFERIDAS.toml`.
+  Medição com R$ 100 mil. A conta de R$ 1.000,90 já se mostrou insuficiente para 1 contrato
+  em todas as rodadas anteriores e não é rodada de novo.
+
+| # | Contrato | Estratégia |
+|---|---|---|
+| 27 | WIN | `canal_rompimento` |
+| 28 | WDO | `canal_rompimento` |
+| 29 | WIN | `canal_media` |
+| 30 | WDO | `canal_media` |
+
+Regra de aprovação, a mesma da rodada 6: candidato só se passar em todos os critérios no
+**WIN e no WDO** com a mesma estratégia. Referência para saber se o filtro de canal ajuda: o
+rompimento sem filtro (`rompimento_curto`, rodada 5R: WIN fator 0,95, WDO 0,82).
