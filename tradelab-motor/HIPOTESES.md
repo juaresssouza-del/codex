@@ -414,3 +414,23 @@ Regra (5 minutos, dentro do pregão; o canal recomeça a cada dia, como os outro
 Regra de aprovação, a mesma da rodada 6: candidato só se passar em todos os critérios no
 **WIN e no WDO** com a mesma estratégia. Referência para saber se o filtro de canal ajuda: o
 rompimento sem filtro (`rompimento_curto`, rodada 5R: WIN fator 0,95, WDO 0,82).
+
+Resultados das hipóteses 27 a 30 (1 contrato, R$ 100 mil; 11/2022 a 06/2026):
+
+| # | Ops | Acerto | Fator de lucro | Antes dos custos (R$) | Custos (R$) | Líquido (R$) | Pior queda (R$) | Supera o aleatório | Veredito |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 27 WIN canal + rompimento | 766 | 36,8% | 0,88 | +915 | 3.600 | −2.685 | 3.904 | 67,0% | Reprovada |
+| 28 WDO canal + rompimento | 529 | 33,3% | 0,77 | +1.350 | 7.660 | −6.310 | 6.330 | 55,5% | Reprovada |
+| 29 WIN canal + média | 1.044 | 33,1% | 0,75 | −2.514 | 4.907 | −7.421 | 8.055 | 8,5% | Reprovada |
+| 30 WDO canal + média | 750 | 32,3% | 0,69 | −110 | 10.860 | −10.970 | 10.970 | 30,5% | Reprovada |
+
+Leitura:
+- **O filtro de canal não melhorou o rompimento; piorou.** Sem filtro (5R), o fator de lucro
+  era 0,95 (WIN) e 0,82 (WDO); com filtro, 0,88 e 0,77.
+- **Entrar no recuo à média perde antes dos custos** nos dois mercados.
+- **A saída por "virou lateral" dominou:** 658 de 766 saídas no WIN e 872 de 1.044 em 29 foram
+  por sinal, quase todas porque o R² caiu abaixo do limite. A posição sai cedo e paga custo.
+  Esta é uma tradução possível do método; a forma como o Juares saía das operações (e em que
+  tempo gráfico ele desenhava o canal) não foi informada e pode ser diferente. Testar outra
+  forma é hipótese nova, registrada antes.
+- 30 hipóteses no projeto; nenhuma aprovada. A hipótese 26 (agenda) aguarda o calendário oficial.
