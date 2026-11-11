@@ -434,3 +434,49 @@ Leitura:
   tempo gráfico ele desenhava o canal) não foi informada e pode ser diferente. Testar outra
   forma é hipótese nova, registrada antes.
 - 30 hipóteses no projeto; nenhuma aprovada. A hipótese 26 (agenda) aguarda o calendário oficial.
+
+## Rodada 8 — 11/11/2026 — swing trade em canal, 20 ações (registrada antes dos dados)
+
+Decisões do Juares: as **20 ações mais negociadas**, **swing trade** (a posição pode durar
+dias), canais em **15 min, 30 min, 60 min e 4 h**. As imagens enviadas eram exemplos da
+internet; a regra segue o texto de canais de alta e baixa que ele mandou.
+
+**Universo fixado agora, por liquidez no início do histórico (2021), não pela de hoje** (a
+lista de hoje favoreceria quem subiu): VALE3, PETR4, PETR3, ITUB4, BBDC4, B3SA3, BBAS3,
+ABEV3, MGLU3, ITSA4, WEGE3, SUZB3, RENT3, GGBR4, JBSS3, LREN3, PRIO3, ELET3, CSNA3, HAPV3.
+Reservas, na ordem, para código que não existir mais no servidor: CMIG4, EQTL3, RADL3,
+VBBR3, UGPA3.
+
+**Dados:** M15 do MT5 da XP (script `b3/mt5/ExportarAcoes.mq5`); 30 min, 60 min e 4 h por
+agregação. **Ajuste por proventos é obrigatório**: sem ele, cada data-ex de dividendo vira
+uma queda falsa que quebra o canal. Não roda com preço sem ajuste.
+
+**Regra (só comprado: com R$ 1.000,90, vender a descoberto exige aluguel de ações e fica fora).**
+O canal é redesenhado a cada candle **só com os N candles anteriores**: reta de regressão dos
+fechamentos; linha de cima paralela pelo topo mais alto acima da reta, linha de baixo
+paralela pelo fundo mais baixo (o canal "desenhado à mão", sem olhar o futuro). Canal de alta:
+inclinação > 0 e R² ≥ r. A noite **não** reinicia o canal (swing trade).
+- `canal_suporte` (texto: "comprar quando o preço toca a linha inferior"): em canal de alta,
+  o candle toca a LTA e fecha acima dela → compra na abertura seguinte. **Sai** quando a
+  máxima toca a linha de retorno (alvo) ou quando fecha abaixo da LTA (rompimento contra).
+- `canal_aceleracao` (texto: "rompimento a favor sinaliza aceleração"; alvo = largura
+  projetada): em canal de alta, fecha acima da linha de retorno → compra. **Sai** no alvo
+  (linha de retorno + largura do canal) ou se fechar de volta abaixo da linha média.
+- Canal de baixa ou lateral: não abre posição.
+- Grade: N = 40 ou 80 candles; r = 0,5 ou 0,7 → 4 combinações.
+- Stop de emergência 10%; saída na abertura se houver salto além do stop. Posição de 100% do
+  capital (R$ 1.000,90): um salto de 5% contra custa ~R$ 50.
+- Custos (operação manual): corretagem R$ 0 com RLP **a confirmar na XP**; tarifa B3 0,03% e
+  slippage 0,05% por lado.
+- Walk-forward por ação: treino 12 meses, teste 1, mínimo de 10 operações no treino.
+  Reserva (07/2026 em diante) fora.
+
+| # | Estratégia | Tempo |
+|---|---|---|
+| 31 / 32 / 33 / 34 | `canal_suporte` | 15 min / 30 min / 60 min / 4 h |
+| 35 / 36 / 37 / 38 | `canal_aceleracao` | 15 min / 30 min / 60 min / 4 h |
+
+**Avaliação, fixada agora:** cada hipótese junta as 20 ações (operações somadas; o percentil
+contra o aleatório soma as rodadas aleatórias das 20). Critérios de `criterios.toml`. Por
+serem 8 hipóteses, **uma estratégia só vira candidata se passar em pelo menos 2 dos 4 tempos
+gráficos**. Comparação obrigatória: comprar e segurar as mesmas ações no mesmo período.
