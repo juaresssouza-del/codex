@@ -237,3 +237,18 @@ def test_validacao_funciona_com_futuros():
     bh = validacao.comprar_e_segurar(df, RISCO2, CustosFuturo(), WIN_AMBOS)
     dias = ((df.ts_abertura - BRT) // 86_400_000).nunique()
     assert len(bh.operacoes) == dias and set(bh.operacoes.lado) == {1}
+
+
+def test_limite_fixo_de_contratos():
+    """Capital pequeno, 1 contrato: o risco do stop passa do % por operação, mas o limite manda."""
+    df = pregoes(dias=1)
+    risco = Risco(capital=1_000, risco_por_trade=1.0, exposicao_max=1.0, stop=0.005, alvo=None, max_contratos=1)
+    r = executar_futuros(df, sinais(len(df), **{"5": 1}), risco, SEM_CUSTO, WIN)
+    assert r.operacoes.iloc[0].quantidade == 1
+
+
+def test_rompimento_curto_cabe_no_pregao():
+    e = ESTRATEGIAS["rompimento_curto"]
+    assert all(e.aquecimento(p) <= 21 for p in e.combinacoes())  # 15 min: 37 candles por pregão
+    df = pregoes(dias=2, semente=7)
+    assert set(np.unique(e.sinais(df, **e.padrao))) <= {-1, 0, 1}

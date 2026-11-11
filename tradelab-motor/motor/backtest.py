@@ -33,6 +33,7 @@ class Risco:
     alvo: float | None = 0.02
     perda_diaria_max: float | None = None   # fração do patrimônio no início do dia (BRT)
     max_operacoes_dia: int | None = None
+    max_contratos: int | None = None  # B3: teto de contratos por operação
 
     def __post_init__(self):
         if not 0 < self.capital:

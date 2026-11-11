@@ -167,3 +167,36 @@ Leitura:
   Em 8 anos de alta do cripto, operar não superou ficar parado.
 - Conforme combinado: **fim da busca por estratégia em cripto.** O período reservado
   (07/2026 em diante) não foi usado. O projeto segue para a B3.
+
+## Rodada 5 — 11/11/2026 — B3: WIN e WDO, comprado e vendido
+
+Registrada antes de rodar. Primeira rodada na B3, com o histórico de 5 anos do MT5 da XP
+(`b3/DADOS.md`). Decisões do Juares: operar **comprado e vendido** e começar com
+**R$ 1.000**, com a menor alavancagem possível, que é **1 contrato** por operação.
+
+Desenho comum:
+- `--lado ambos`, **1 contrato fixo** (`--max-contratos 1`), capital R$ 1.000.
+- Stop 0,5%, sem alvo; saída pelo sinal contrário, pelo stop ou pela zeragem às 18h00.
+  Sem entrada depois das 17h30; nada passa de um pregão para o outro.
+- Custo de robô na XP: WIN R$ 1,35 e WDO R$ 2,24 por contrato e por lado, mais 1 tick
+  de slippage em cada execução a mercado.
+- Dados de 11/2021 a 06/2026 (o período reservado, de 07/2026 em diante, fica de fora).
+  Treino 12 meses, teste 1, mínimo de 30 operações no treino, 200 rodadas aleatórias.
+- Mesma régua de `criterios.toml`. A queda máxima é medida sobre os R$ 1.000.
+
+| # | Contrato | Tempo | Estratégia | Grade |
+|---|---|---|---|---|
+| 15 | WIN | 5 min | `abertura` (faixa dos primeiros 15/30/60 min) | 3 combinações |
+| 16 | WIN | 15 min | `rompimento_curto` (máx./mín. de 6/12/20 candles; saída 3/6/12) | 6 combinações |
+| 17 | WDO | 5 min | `abertura` | 3 combinações |
+| 18 | WDO | 15 min | `rompimento_curto` | 6 combinações |
+
+Leitura combinada antes do teste:
+- Com R$ 1.000, 1 contrato já é alavancagem de ~35× (WIN) e ~56× (WDO): um stop de 0,5%
+  custa ~18% (WIN) e ~28% (WDO) do capital. **O critério de queda máxima de 10% deve
+  falhar mesmo que a estratégia tenha vantagem.** Por isso o relatório também mostra o
+  capital necessário para a pior queda caber em 10%.
+- Leitura: se uma hipótese passar em operações, fator de lucro, expectativa e percentil, e
+  falhar só na queda máxima, a conclusão é "vantagem, mas capital insuficiente": segue
+  para o período reservado e para o simulador, e não para dinheiro real com R$ 1.000.
+- Se falhar em vantagem, está reprovada como as anteriores.

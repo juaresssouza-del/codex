@@ -121,6 +121,13 @@ ESTRATEGIAS = {
         padrao={"candles": 6},
         grade={"candles": [3, 6, 12]},
         aquecimento=lambda p: p["candles"] + 1),
+    "rompimento_curto": Estrategia(
+        "rompimento_curto", "Rompimento da máxima/mínima de N candles, com janelas que cabem num pregão",
+        sinais_rompimento,
+        padrao={"entrada": 12, "saida": 6},
+        grade={"entrada": [6, 12, 20], "saida": [3, 6, 12]},
+        aquecimento=lambda p: max(p["entrada"], p["saida"]) + 1,
+        restricao=lambda p: p["saida"] <= p["entrada"]),
     "rsi": Estrategia(
         "rsi", "Reversão: compra com RSI baixo, sai quando ele recupera", sinais_rsi,
         padrao={"periodo": 14, "compra": 30, "saida": 55},

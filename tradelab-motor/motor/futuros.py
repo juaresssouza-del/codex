@@ -175,6 +175,8 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(
         if stop is not None:
             perda = (abs(entrada - stop) + slip) * vp + 2 * cl
             q = min(q, math.floor(saldo * risco.risco_por_trade / perda + 1e-9))
+        if risco.max_contratos is not None:
+            q = min(q, risco.max_contratos)
         if q < 1:
             rejeitadas += 1
             return
