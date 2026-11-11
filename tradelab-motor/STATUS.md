@@ -54,6 +54,13 @@ Conclusões:
   rompimento da faixa de abertura. 70 testes.
 - Nenhuma estratégia foi rodada no dado real da B3: as hipóteses são registradas antes.
 
+### 5. B3: rodada 5 (hipóteses 15 a 18), 11/11/2026
+- Comprado e vendido, 1 contrato, WIN e WDO, faixa de abertura e rompimento.
+- Com R$ 1.000 a conta quebra nas quatro (−84% a −94%).
+- Medidas com capital que não quebra: as quatro ganham antes dos custos e superam o
+  aleatório, mas o custo de robô na XP (~R$ 4,70 por operação no WIN) é maior que o ganho.
+  Reprovadas. Capital para a pior queda caber em 10%: R$ 47 mil a R$ 143 mil por contrato.
+
 ## Próximos passos
 
 ### Juares

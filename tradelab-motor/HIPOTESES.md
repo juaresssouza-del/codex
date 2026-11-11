@@ -219,3 +219,22 @@ capital de medição de **R$ 100.000** só para a conta não quebrar no meio. O 
 reais por operação é o mesmo; muda só o tamanho da amostra. O critério de queda máxima
 perde sentido nessa medição (é % de R$ 100 mil); valem operações, fator de lucro,
 expectativa e percentil contra o aleatório.
+
+Resultado da medição 15b–18b (1 contrato, R$ 100 mil só para não quebrar; 11/2022 a 06/2026):
+
+| # | Ops | Acerto | Fator de lucro | Antes dos custos | Custos | Líquido | Supera o aleatório | Pior queda (R$) | Veredito |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 15b WIN abertura 5m | 1.459 | 40,6% | 0,99 | **+6.255** | 6.857 | −602 | 99,0% | 7.796 | Reprovada |
+| 16b WIN rompimento 15m | 975 | 42,4% | 0,93 | **+1.727** | 4.583 | −2.856 | 98,5% | 4.668 | Reprovada |
+| 17b WDO abertura 5m | 1.164 | 43,9% | 0,90 | **+4.945** | 16.855 | −11.910 | 100% | 14.306 | Reprovada |
+| 18b WDO rompimento 15m | 688 | 42,0% | 0,81 | **+1.715** | 9.962 | −8.247 | 100% | 9.344 | Reprovada |
+
+Leitura:
+- **Há sinal real na B3:** as quatro ganham antes dos custos e superam quase todas as rodadas
+  aleatórias, comprado e vendido. É o padrão mais consistente do projeto.
+- **O sinal é menor que o custo.** No melhor caso (15b, WIN abertura), o ganho antes dos
+  custos é ~R$ 4,29 por operação e o custo, ~R$ 4,70. Com corretagem zero para robô (a XP
+  não dá), sobraria ~R$ 1,80 por operação: fator de lucro perto de 1,04, ainda longe de 1,3.
+- **Capital:** a pior queda de 1 contrato vai de R$ 4,7 mil a R$ 14,3 mil. Para caber em 10%,
+  seriam necessários de R$ 47 mil a R$ 143 mil. R$ 1.000 quebra (rodada 5 original).
+- 18 hipóteses testadas no projeto; nenhuma aprovada. O período reservado continua intocado.
