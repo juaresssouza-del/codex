@@ -1,5 +1,9 @@
 # TradeLab — motor de pesquisa
 
+**Versão 0.2.0:** leia [AUDITORIA_CODEX.md](AUDITORIA_CODEX.md) antes de interpretar os
+resultados antigos. Foram corrigidos problemas de execução, drawdown, agregação e
+validação. Os resultados históricos abaixo não foram recalculados com essas correções.
+
 Motor de backtest e validação para Binance Spot (só comprado, uma posição por vez).
 É a parte que faltava no TradeLab (PWA): o painel mostra, o motor decide se uma
 estratégia tem vantagem **antes** de qualquer dinheiro real.
@@ -13,7 +17,7 @@ Python 3.11 ou mais novo.
 ```sh
 cd tradelab-motor
 python -m pip install numpy pandas pytest
-python -m pytest            # 70 testes
+python -m pytest            # 104 passam; 4 da amostra real são pulados para proteger a reserva
 ```
 
 ## Uso
@@ -47,7 +51,8 @@ python -m motor validar --contrato WIN --intervalo 15m --estrategia abertura --l
 O motor de futuros (`motor/futuros.py`) opera em pontos × valor do ponto (WIN R$ 0,20;
 WDO R$ 10), contratos inteiros limitados pelo risco e pela margem (`--exposicao` = % do
 patrimônio que pode virar margem), custo em R$ por contrato e por lado (`--custo-lado`,
-padrão WIN R$ 1,35 e WDO R$ 2,24) e slippage em ticks. `--lado ambos` permite ficar
+premissas WIN R$ 1,35 e WDO R$ 2,24, ainda sem confirmação da tarifa individual do EA)
+e slippage em ticks. `--lado ambos` permite ficar
 vendido e virar a mão. Não entra depois das 17h30, zera às 18h00 e nada passa de um
 pregão para o outro. Como a noite é uma lacuna, os indicadores reaquecem a cada pregão:
 o salto falso da troca de vencimento da série contínua não contamina o sinal.
@@ -65,8 +70,9 @@ Opções de risco e custo (todas em %): `--capital --risco --exposicao --stop --
    Binance são respeitados.
 2. **Walk-forward.** Em cada mês, os parâmetros são escolhidos só com os 6 meses
    anteriores e medidos no mês seguinte, que a escolha nunca viu. Só esse resultado conta.
-3. **Linhas de base.** A estratégia precisa superar entradas aleatórias com a mesma
-   frequência, duração, stop, alvo e custos (200 rodadas) e é comparada com comprar e
+3. **Linhas de base.** A estratégia precisa superar entradas aleatórias com frequência
+   e duração aproximadamente calibradas, mesma elegibilidade, stop, alvo e custos
+   (200 rodadas) e é comparada com comprar e
    segurar com a mesma exposição.
 4. **Critérios fixados antes** em `criterios.toml`: no mínimo 200 operações, fator de
    lucro ≥ 1,3, expectativa positiva, drawdown ≤ 10% e percentil ≥ 95 contra o
@@ -78,8 +84,10 @@ Opções de risco e custo (todas em %): `--capital --risco --exposicao --stop --
    da hora, com volume zero) são removidos e viram lacuna. Ordem pendente não atravessa
    lacuna e o indicador precisa reaquecer depois dela.
 
-O motor reproduz o simulador do TradeLab no mesmo dado (teste
-`test_paridade_com_o_simulador_do_tradelab`): mesmo resultado até a 6ª casa decimal.
+A reprodução do simulador do TradeLab até a sexta casa decimal foi registrada antes
+da auditoria. Seu teste com a amostra real fica pulado porque a amostra intercepta a
+reserva. Essa paridade não foi reafirmada na versão auditada; os casos novos usam
+preços sintéticos, sem consumir o histórico reservado.
 
 ## Resultado em 09/11/2026 — BTCUSDT 15m
 

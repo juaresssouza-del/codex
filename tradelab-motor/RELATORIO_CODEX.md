@@ -3,6 +3,11 @@
 Leia este arquivo primeiro. Ele resume o que foi feito no `tradelab-motor/`, o que foi
 concluído e o que **não** fazer. Os detalhes estão nos arquivos citados.
 
+**Complemento posterior — motor 0.2.0:** leia também [AUDITORIA_CODEX.md](AUDITORIA_CODEX.md).
+Foram corrigidos erros de execução e validação. Os números abaixo são registros da
+versão anterior e não foram recalculados; não constituem resultado validado da versão
+auditada. A auditoria não aprovou estratégias nem utilizou a reserva em execuções.
+
 ## 1. Onde está cada coisa
 
 | Arquivo | Conteúdo |

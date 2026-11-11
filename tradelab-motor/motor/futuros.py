@@ -17,6 +17,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -37,6 +38,17 @@ class Contrato:
     ultima_entrada: int = 17 * 60 + 30
     lado: str = "comprado"       # "comprado" ou "ambos"
 
+    def __post_init__(self):
+        for nome in ("valor_ponto", "tick", "margem"):
+            if not math.isfinite(getattr(self, nome)) or getattr(self, nome) <= 0:
+                raise ValueError(f"{nome} precisa ser finito e positivo.")
+        if self.lado not in ("comprado", "ambos"):
+            raise ValueError("lado precisa ser 'comprado' ou 'ambos'")
+        for nome in ("zeragem", "ultima_entrada"):
+            v = getattr(self, nome)
+            if not isinstance(v, int) or not 0 <= v < 24 * 60:
+                raise ValueError(f"{nome} precisa ser um minuto válido do dia.")
+
     def arredonda(self, p: float) -> float:
         return round(p / self.tick) * self.tick
 
@@ -56,10 +68,17 @@ CONTRATOS = {
 
 @dataclass(frozen=True)
 class CustosFuturo:
-    # Padrão WIN na XP para robô: corretagem R$ 1,00 + 9,65% de tributos (a promoção RLP
-    # exclui automação) + tarifa B3 R$ 0,25 por lado. WDO: R$ 1,10 + ~R$ 1,14 = R$ 2,24.
+    # Premissas das rodadas históricas, NÃO cotação confirmada do EA na XP.
+    # A rota MT5/EA e a PTAX usada no componente B3 de WDO aguardam confirmação.
+    # Mantidas sem otimização durante a auditoria; ver AUDITORIA_CODEX.md.
     custo_lado: float = 1.35     # R$ por contrato, em cada lado
     slippage_ticks: int = 1      # ticks contra você em cada execução a mercado
+
+    def __post_init__(self):
+        if not math.isfinite(self.custo_lado) or self.custo_lado < 0:
+            raise ValueError("custo_lado precisa ser finito e não negativo.")
+        if isinstance(self.slippage_ticks, bool) or not isinstance(self.slippage_ticks, (int, np.integer)) or self.slippage_ticks < 0:
+            raise ValueError("slippage_ticks precisa ser um inteiro não negativo.")
 
 
 CUSTOS = {"WIN": CustosFuturo(1.35, 1), "WDO": CustosFuturo(2.24, 1)}
@@ -76,6 +95,8 @@ class RelatorioB3:
 def carregar_mt5(caminho: Path) -> tuple[pd.DataFrame, RelatorioB3]:
     """CSV de 'Exportar barras' do MT5: tabulação, horário de Brasília."""
     d = pd.read_csv(caminho, sep="\t")
+    if d.empty:
+        raise ValueError("CSV do MT5 sem candles.")
     d.columns = [c.strip("<>").lower() for c in d.columns]
     brt = pd.to_datetime(d["date"] + " " + d["time"], format="%Y.%m.%d %H:%M:%S")
     ts = brt.to_numpy().astype("datetime64[ms]").astype(np.int64) + _BRT_MS
@@ -90,13 +111,17 @@ def carregar_mt5(caminho: Path) -> tuple[pd.DataFrame, RelatorioB3]:
     ruim = ~np.isfinite(p).all(axis=1) | (p <= 0).any(axis=1)
     ruim |= df.maxima.to_numpy() < np.maximum(df.abertura, df.fechamento).to_numpy()
     ruim |= df.minima.to_numpy() > np.minimum(df.abertura, df.fechamento).to_numpy()
+    ruim |= ~np.isfinite(df.volume.to_numpy()) | (df.volume.to_numpy() < 0)
     if ruim.any():
         i = int(np.flatnonzero(ruim)[0])
         raise ValueError(f"Candle incoerente no arquivo do MT5: {df.iloc[i].to_dict()}")
     dia = (df.ts_abertura - _BRT_MS) // _DIA_MS
     salto = df.ts_abertura.diff()
     mesmo_dia = dia == dia.shift()
-    passo = int(salto[mesmo_dia].min())
+    intervalos = salto[mesmo_dia]
+    if intervalos.empty:
+        raise ValueError("Não é possível inferir o intervalo do MT5 sem candles consecutivos no pregão.")
+    passo = int(intervalos.min())
     df["ts_fechamento"] = df.ts_abertura + passo - 1
     pausa = mesmo_dia & (salto > passo)
     pausas = [(int(t), int((s - passo) // 60_000)) for t, s in zip(df.ts_abertura[pausa], salto[pausa])]
@@ -104,27 +129,45 @@ def carregar_mt5(caminho: Path) -> tuple[pd.DataFrame, RelatorioB3]:
 
 
 def reamostrar(df: pd.DataFrame, minutos: int) -> pd.DataFrame:
-    """Agrega candles em blocos de `minutos` contados a partir das 9h00, sem cruzar pregões."""
+    """Agrega somente blocos completos desde as 9h00. Lacunas não viram candles fictícios."""
+    if isinstance(minutos, bool) or not isinstance(minutos, int) or minutos <= 0:
+        raise ValueError("minutos precisa ser um inteiro positivo.")
+    if df.empty:
+        return df.copy()
+    duracoes = df.ts_fechamento - df.ts_abertura + 1
+    passo = int(duracoes.iloc[0])
+    if passo <= 0 or not (duracoes == passo).all() or minutos * 60_000 % passo:
+        raise ValueError("O intervalo de destino precisa ser múltiplo do intervalo de origem.")
+    if df.ts_abertura.duplicated().any() or not df.ts_abertura.is_monotonic_increasing:
+        raise ValueError("Candles precisam estar ordenados e sem duplicatas.")
     dia = (df.ts_abertura - _BRT_MS) // _DIA_MS
     minuto = ((df.ts_abertura - _BRT_MS) % _DIA_MS) // 60_000
     bloco = (minuto - 9 * 60) // minutos
     g = df.groupby([dia, bloco], sort=True)
     out = g.agg(abertura=("abertura", "first"), maxima=("maxima", "max"), minima=("minima", "min"),
-                fechamento=("fechamento", "last"), volume=("volume", "sum")).reset_index(names=["dia", "bloco"])
+                fechamento=("fechamento", "last"), volume=("volume", "sum"),
+                inicio_real=("ts_abertura", "first"), fim_real=("ts_fechamento", "last"),
+                quantidade=("ts_abertura", "size")).reset_index(names=["dia", "bloco"])
     out["ts_abertura"] = (out.dia * _DIA_MS + _BRT_MS + (9 * 60 + out.bloco * minutos) * 60_000).astype("int64")
     out["ts_fechamento"] = out.ts_abertura + minutos * 60_000 - 1
-    return out[["ts_abertura", "abertura", "maxima", "minima", "fechamento", "volume", "ts_fechamento"]]
+    completo = ((out.quantidade == minutos * 60_000 // passo) &
+                (out.inicio_real == out.ts_abertura) & (out.fim_real == out.ts_fechamento))
+    removidos = int((~completo).sum())
+    out = out.loc[completo, ["ts_abertura", "abertura", "maxima", "minima", "fechamento", "volume", "ts_fechamento"]].reset_index(drop=True)
+    out.attrs["blocos_incompletos_removidos"] = removidos
+    return out
 
 
-def executar_futuros(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custos: CustosFuturo | None = None,
-                     mercado: Contrato = CONTRATOS["WIN"], aquecimento: int = 0, inicio: int = 0) -> Resultado:
+def executar_futuros(df: pd.DataFrame, sinais: np.ndarray | Callable[[int, int], int], risco: Risco = Risco(), custos: CustosFuturo | None = None,
+                     mercado: Contrato = CONTRATOS["WIN"], aquecimento: int | np.ndarray = 0, inicio: int = 0) -> Resultado:
     """`sinais[i]`: +1 quer ficar comprado, -1 quer ficar vendido (ou sair, se só comprado).
 
     `risco.exposicao_max` é a fração do patrimônio que pode virar margem."""
     c_ = mercado
     custos = custos or CUSTOS.get(c_.nome, CustosFuturo())
     n = len(df)
-    if len(sinais) != n:
+    sinal_dinamico = callable(sinais)
+    if not sinal_dinamico and len(sinais) != n:
         raise ValueError("Vetor de sinais com tamanho diferente dos candles.")
     ts_a = df.ts_abertura.to_numpy(np.int64)
     ts_f = df.ts_fechamento.to_numpy(np.int64)
@@ -132,12 +175,12 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(
     seq = np.zeros(n, dtype=np.int64)
     for i in range(1, n):
         seq[i] = seq[i - 1] + 1 if ts_a[i] - ts_a[i - 1] == passo else 0
-    valido = (seq >= max(aquecimento - 1, 0)) & (np.arange(n) >= inicio)
+    valido = (seq >= np.maximum(np.asarray(aquecimento) - 1, 0)) & (np.arange(n) >= inicio)
     dia_arr = (ts_a - _BRT_MS) // _DIA_MS
     ultimo = np.append(dia_arr[1:] != dia_arr[:-1], True).tolist()
     minuto = (((ts_a - _BRT_MS) % _DIA_MS) // 60_000).tolist()
     O, H, L, C = (df[k].to_numpy(float).tolist() for k in ("abertura", "maxima", "minima", "fechamento"))
-    S, V, Q, dia = np.asarray(sinais).tolist(), valido.tolist(), seq.tolist(), dia_arr.tolist()
+    S, V, Q, dia = None if sinal_dinamico else np.asarray(sinais).tolist(), valido.tolist(), seq.tolist(), dia_arr.tolist()
 
     vp, cl = c_.valor_ponto, custos.custo_lado
     slip = custos.slippage_ticks * c_.tick
@@ -171,6 +214,10 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(
         entrada = o + lado * slip
         stop = c_.arredonda(entrada * (1 - lado * risco.stop)) if risco.stop else None
         alvo = c_.arredonda(entrada * (1 + lado * risco.alvo)) if risco.alvo else None
+        if (stop is not None and lado * (entrada - stop) <= 0) or \
+           (alvo is not None and lado * (alvo - entrada) <= 0):
+            rejeitadas += 1
+            return
         q = math.floor(saldo * risco.exposicao_max / c_.margem + 1e-9)
         if stop is not None:
             perda = (abs(entrada - stop) + slip) * vp + 2 * cl
@@ -184,10 +231,17 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(
         pos = {"lado": lado, "q": q, "entrada": entrada, "stop": stop, "alvo": alvo, "slip": slip,
                "ts": int(ts_a[i]), "i": i, "base": saldo}
 
+    def liquidacao(preco):
+        if pos is None:
+            return saldo
+        return saldo + (pos["lado"] * (preco - pos["lado"] * slip - pos["entrada"]) * vp - 2 * cl) * pos["q"]
+
     for i in range(n):
         if dia[i] != dia_atual:
             dia_atual, base_dia, pnl_dia, entradas_dia = dia[i], (patr[i - 1] if i else saldo), 0.0, 0
         o, h, l, c = O[i], H[i], L[i], C[i]
+        minimo_candle = liquidacao(o)
+        exposto = pos is not None
 
         if pos is not None and minuto[i] >= c_.zeragem:
             fechar(o, "zeragem", int(ts_a[i]), i, slip)
@@ -195,8 +249,9 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(
         if pendente in (COMPRAR, VENDER):
             if pos is not None and pos["lado"] != pendente:
                 fechar(o, "sinal", int(ts_a[i]), i, slip)
-            if pos is None and Q[i] > 0 and minuto[i] < c_.ultima_entrada:
+            if pos is None and Q[i] > 0 and minuto[i] < min(c_.ultima_entrada, c_.zeragem):
                 abrir(pendente, o, i)
+                exposto |= pos is not None
         elif pendente == SAIR and pos is not None:
             fechar(o, "sinal", int(ts_a[i]), i, slip)
         pendente = 0
@@ -205,31 +260,35 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(
             lado = pos["lado"]
             if pos["stop"] is not None and (l <= pos["stop"] if lado == 1 else h >= pos["stop"]):
                 bruto = min(o, pos["stop"]) if lado == 1 else max(o, pos["stop"])
+                minimo_candle = min(minimo_candle, liquidacao(bruto))
                 fechar(bruto, "stop", int(ts_f[i]), i, slip)
-            elif pos["alvo"] is not None and (h >= pos["alvo"] if lado == 1 else l <= pos["alvo"]):
-                fechar(pos["alvo"], "alvo", int(ts_f[i]), i, 0.0)
+            else:
+                minimo_candle = min(minimo_candle, liquidacao(l if lado == 1 else h))
+                if pos["alvo"] is not None and (h >= pos["alvo"] if lado == 1 else l <= pos["alvo"]):
+                    fechar(pos["alvo"], "alvo", int(ts_f[i]), i, 0.0)
         if pos is not None and ultimo[i]:
             fechar(c, "fim do dia", int(ts_f[i]), i, slip)
 
         if pos is not None:
-            posicionado += 1
-            lado, q = pos["lado"], pos["q"]
-            liq = lambda p: lado * (p - lado * slip - pos["entrada"]) * vp * q - 2 * cl * q
-            valor, minimo = saldo + liq(c), saldo + liq(l if lado == 1 else h)
+            valor = liquidacao(c)
         else:
-            valor = minimo = saldo
+            valor = saldo
+        posicionado += int(exposto)
+        minimo = min(minimo_candle, valor)
         patr[i], patr_min[i] = valor, minimo
+        dd_m = max(dd_m, (pico - minimo) / pico)
         pico = max(pico, valor)
         dd_f = max(dd_f, (pico - valor) / pico)
-        dd_m = max(dd_m, (pico - minimo) / pico)
 
         if V[i] and not ultimo[i]:
-            s = S[i]
             atual = pos["lado"] if pos is not None else 0
+            s = sinais(i, atual) if sinal_dinamico else S[i]
             if s == 1 and atual != 1:
                 pendente = COMPRAR
             elif s == -1 and atual != -1:
                 pendente = VENDER if ambos else (SAIR if atual == 1 else 0)
+            elif s == SAIR and atual != 0:
+                pendente = SAIR
 
     return Resultado(
         operacoes=pd.DataFrame(ops, columns=_COLS_OPS + ["lado"]),
@@ -238,5 +297,5 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(
         drawdown_fechamento=dd_f, drawdown_minimo=dd_m,
         rejeitadas_filtro=rejeitadas, bloqueadas_risco=bloqueadas,
         candles_posicionado=posicionado, candles_operaveis=int(valido.sum()),
-        risco=risco, custos=custos,
+        risco=risco, custos=custos, sinais_validos=valido,
     )

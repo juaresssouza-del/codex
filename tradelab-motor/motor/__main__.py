@@ -15,6 +15,7 @@ from . import dados, futuros, metricas, painel, validacao
 from .backtest import Risco, executar
 from .estrategias import ESTRATEGIAS
 from .mercado import SEM_FILTROS, Custos, Mercado
+from . import __version__
 
 RAIZ = Path(__file__).resolve().parent.parent
 
@@ -69,6 +70,9 @@ def _carregar_b3(a):
         sys.exit("O histórico da B3 está em candles de 5 minutos; use --intervalo 5m ou maior.")
     if minutos > 5:
         df = futuros.reamostrar(df, minutos)
+        removidos = df.attrs.get("blocos_incompletos_removidos", 0)
+        if removidos:
+            print(f"B3: {removidos} blocos incompletos removidos na agregação; lacunas preservadas.")
     return df, rel
 
 
@@ -189,7 +193,8 @@ def cmd_validar(a):
     print(f"  Entradas aleatórias ({a.aleatorias} rodadas): mediana {_fmt(float(np.median(mc.resultados)))} %, "
           f"estratégia {_fmt(mc.referencia)} % -> supera {_fmt(mc.percentil, 1)} % delas")
     if a.contrato:
-        pior = float(np.max(np.maximum.accumulate(wf.resultado.patrimonio) - wf.resultado.patrimonio_minimo, initial=0))
+        pico_anterior = np.maximum.accumulate(np.r_[wf.resultado.capital_inicial, wf.resultado.patrimonio])[:-1]
+        pior = float(np.max(pico_anterior - wf.resultado.patrimonio_minimo, initial=0))
         print(f"  Pior queda em reais: R$ {_fmt(pior)} -> capital para ela caber em "
               f"{_fmt(crit.get('drawdown_max_pct', 10), 0)} %: R$ {_fmt(pior / crit.get('drawdown_max_pct', 10) * 100)}")
     v = validacao.avaliar(m, mc.percentil, crit)
@@ -200,6 +205,7 @@ def cmd_validar(a):
     saida = Path(a.saida) / f"validacao-{_nome(a)}-{a.intervalo}-{e.nome}{'-' + a.lado if a.contrato else ''}{'-limitada' if getattr(custos, 'entrada_limitada', False) else ''}-{datetime.now():%Y%m%d-%H%M%S-%f}.json"
     saida.parent.mkdir(parents=True, exist_ok=True)
     saida.write_text(json.dumps({
+        "versao_motor": __version__,
         "estrategia": e.nome, "simbolo": _nome(a), "intervalo": a.intervalo, "continuo": a.continuo,
         "moeda": _moeda(a), "lado": a.lado if a.contrato else "comprado",
         "risco": risco.__dict__, "custos": custos.__dict__, "criterios": crit,

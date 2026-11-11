@@ -71,7 +71,8 @@ def test_csv_incoerente_e_rejeitado(tmp_path):
 def test_reamostrar_respeita_o_pregao():
     df = pregoes(dias=2, semente=1)
     m15 = futuros.reamostrar(df, 15)
-    assert len(m15) == 2 * 38  # 113 candles de 5 min = 37 completos + 1 parcial por dia
+    assert len(m15) == 2 * 37  # o bloco parcial no fim de cada dia não vira um candle de 15 min
+    assert m15.attrs["blocos_incompletos_removidos"] == 2
     dia = (m15.ts_abertura - BRT) // 86_400_000
     assert dia.nunique() == 2
     primeiro = df.iloc[:3]

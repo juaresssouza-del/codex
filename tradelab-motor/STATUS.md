@@ -63,6 +63,15 @@ Conclusões:
 
 ## Próximos passos
 
+**Atualização de auditoria (Codex, motor 0.2.0):** foram corrigidos erros reproduzíveis
+de execução, drawdown, agregação e validação; veja [AUDITORIA_CODEX.md](AUDITORIA_CODEX.md).
+A suíte passou em 104 casos, com 4 testes da amostra real pulados por interceptarem a
+reserva. Critérios, hipóteses e regras de estratégia foram preservados. Os resultados
+de mercado acima não foram recalculados e nenhuma hipótese foi aprovada. Os passos
+antigos de exportação/adaptação abaixo são histórico; a próxima etapa técnica exige
+conferir os dados de desenvolvimento e reexecutar as hipóteses existentes com registro
+prévio da revisão, sem usar a reserva nem operar dinheiro real.
+
 ### Juares
 1. **Conseguir o login e a senha do MT5 Simulador.** Conferir o e-mail reativado (e o
    spam); se não houver nada, pedir o reenvio no site (Automações) ou no chat da XP:

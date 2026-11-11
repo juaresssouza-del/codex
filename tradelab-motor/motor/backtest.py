@@ -13,6 +13,7 @@ limite de operações por dia e o início da janela de operação (walk-forward)
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 
 import numpy as np
 import pandas as pd
@@ -36,7 +37,7 @@ class Risco:
     max_contratos: int | None = None  # B3: teto de contratos por operação
 
     def __post_init__(self):
-        if not 0 < self.capital:
+        if not math.isfinite(self.capital) or not 0 < self.capital:
             raise ValueError("Capital precisa ser positivo.")
         if not 0 < self.exposicao_max <= 1 or not 0 < self.risco_por_trade <= 1:
             raise ValueError("Exposição e risco por operação precisam estar entre 0 e 1.")
@@ -44,6 +45,12 @@ class Risco:
             v = getattr(self, nome)
             if v is not None and not 0 < v < 1:
                 raise ValueError(f"{nome} precisa estar entre 0 e 1.")
+        if self.perda_diaria_max is not None and not 0 < self.perda_diaria_max <= 1:
+            raise ValueError("perda_diaria_max precisa estar entre 0 e 1.")
+        for nome in ("max_operacoes_dia", "max_contratos"):
+            v = getattr(self, nome)
+            if v is not None and (isinstance(v, bool) or not isinstance(v, (int, np.integer)) or v <= 0):
+                raise ValueError(f"{nome} precisa ser um inteiro positivo ou None.")
 
 
 @dataclass
@@ -63,6 +70,7 @@ class Resultado:
     candles_operaveis: int = 0
     risco: Risco = field(default_factory=Risco)
     custos: Custos = field(default_factory=Custos)
+    sinais_validos: np.ndarray | None = None  # alinhado a ts; permite igualar a elegibilidade da referência
 
 
 _COLS_OPS = ["ts_entrada", "ts_saida", "i_entrada", "i_saida", "preco_entrada", "preco_saida",
@@ -70,7 +78,7 @@ _COLS_OPS = ["ts_entrada", "ts_saida", "i_entrada", "i_saida", "preco_entrada", 
 
 
 def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custos: Custos = Custos(),
-             mercado: Mercado = Mercado(), aquecimento: int = 0, inicio: int = 0) -> Resultado:
+             mercado: Mercado = Mercado(), aquecimento: int | np.ndarray = 0, inicio: int = 0) -> Resultado:
     """`sinais[i]` = +1 quer entrar, -1 quer sair, 0 nada. `aquecimento` = candles contínuos
     que o indicador precisa (inclusive o atual); `inicio` = primeiro candle em que sinais valem."""
     n = len(df)
@@ -82,7 +90,7 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
     seq = np.zeros(n, dtype=np.int64)  # candles contínuos antes deste, no mesmo trecho
     for i in range(1, n):
         seq[i] = seq[i - 1] + 1 if ts_a[i] - ts_a[i - 1] == passo else 0
-    valido = (seq >= max(aquecimento - 1, 0)) & (np.arange(n) >= inicio)
+    valido = (seq >= np.maximum(np.asarray(aquecimento) - 1, 0)) & (np.arange(n) >= inicio)
     O, H, L, C = (df[c].to_numpy(float).tolist() for c in ("abertura", "maxima", "minima", "fechamento"))
     S, V, Q = np.asarray(sinais).tolist(), valido.tolist(), seq.tolist()
     dia = ((ts_a - _BRT_MS) // _DIA_MS).tolist()
@@ -108,10 +116,16 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
                     pnl / pos["custo"] * 100, gasto))
         pos = None
 
+    def liquidacao(preco):
+        return caixa if pos is None else caixa + pos["q"] * preco * (1 - slip) * (1 - taxa)
+
     for i in range(n):
         if dia[i] != dia_atual:
             dia_atual, base_dia, pnl_dia, entradas_dia = dia[i], (patr[i - 1] if i else caixa), 0.0, 0
         o, h, l, c = O[i], H[i], L[i], C[i]
+        minimo_candle = liquidacao(o)
+        exposto = pos is not None
+        entrada_intracandle = False
 
         if pendente == SAIR and pos is not None:
             vender(o, "sinal", int(ts_a[i]), i)
@@ -125,6 +139,7 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
                     # só executa se o preço passar do limite; tocar não garante a vez na fila
                     bruto = o if o < limite else (limite if l < limite else None)
                     entrada = bruto
+                    entrada_intracandle = bruto is not None and o >= limite
                 else:
                     bruto, entrada = o, o * (1 + slip)
                 if entrada is None:
@@ -133,7 +148,11 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
                     stop = mercado.arredonda_preco(entrada * (1 - risco.stop)) if risco.stop else None
                     q = caixa * risco.exposicao_max / (entrada * (1 + taxa))
                     if stop is not None:
-                        q = min(caixa * risco.risco_por_trade / (entrada * (1 + taxa) - stop * (1 - slip) * (1 - taxa)), q)
+                        perda = entrada * (1 + taxa) - stop * (1 - slip) * (1 - taxa)
+                        q = min(caixa * risco.risco_por_trade / perda, q) if stop < entrada and perda > 0 else 0
+                    alvo = mercado.arredonda_preco(entrada * (1 + risco.alvo)) if risco.alvo else None
+                    if alvo is not None and alvo <= entrada:
+                        q = 0
                     q = mercado.arredonda_qtd(q)
                     if not mercado.aceita(q, entrada):
                         rejeitadas += 1
@@ -141,27 +160,36 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
                         custo = q * entrada * (1 + taxa)
                         caixa -= custo
                         entradas_dia += 1
-                        alvo = mercado.arredonda_preco(entrada * (1 + risco.alvo)) if risco.alvo else None
                         pos = {"entrada": entrada, "bruto": bruto, "stop": stop, "alvo": alvo, "q": q,
                                "custo": custo, "ts": int(ts_a[i]), "i": i}
+                        exposto = True
         pendente = 0
 
         if pos is not None:
             if pos["stop"] is not None and l <= pos["stop"]:
-                vender(min(o, pos["stop"]), "stop", int(ts_f[i]), i)
-            elif pos["alvo"] is not None and h >= pos["alvo"]:
-                vender(pos["alvo"], "alvo", int(ts_f[i]), i)
+                preco = min(o, pos["stop"])
+                minimo_candle = min(minimo_candle, liquidacao(preco))
+                vender(preco, "stop", int(ts_f[i]), i)
+            else:
+                minimo_candle = min(minimo_candle, liquidacao(l))
+                # Numa limitada preenchida dentro da barra, a máxima pode ter ocorrido
+                # antes da compra. O fechamento acima do alvo comprova novo cruzamento.
+                if pos["alvo"] is not None and h >= pos["alvo"] and \
+                   (not entrada_intracandle or c >= pos["alvo"]):
+                    vender(pos["alvo"], "alvo", int(ts_f[i]), i)
 
         if pos is not None:
-            posicionado += 1
-            liq = pos["q"] * (1 - slip) * (1 - taxa)
-            valor, minimo = caixa + liq * c, caixa + liq * l
+            valor = liquidacao(c)
         else:
-            valor = minimo = caixa
+            valor = caixa
+        posicionado += int(exposto)
+        minimo = min(minimo_candle, valor)
         patr[i], patr_min[i] = valor, minimo
+        # A mínima é comparada ao pico de fechamentos já observado, sem usar o
+        # fechamento futuro deste próprio candle como se tivesse vindo antes dela.
+        dd_m = max(dd_m, (pico - minimo) / pico)
         pico = max(pico, valor)
         dd_f = max(dd_f, (pico - valor) / pico)
-        dd_m = max(dd_m, (pico - minimo) / pico)
 
         if V[i] and i < n - 1:
             if S[i] == ENTRAR and pos is None:
@@ -179,5 +207,5 @@ def executar(df: pd.DataFrame, sinais: np.ndarray, risco: Risco = Risco(), custo
         drawdown_fechamento=dd_f, drawdown_minimo=dd_m,
         rejeitadas_filtro=rejeitadas, bloqueadas_risco=bloqueadas, nao_executadas=nao_executadas,
         candles_posicionado=posicionado, candles_operaveis=int(valido.sum()),
-        risco=risco, custos=custos,
+        risco=risco, custos=custos, sinais_validos=valido,
     )
