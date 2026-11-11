@@ -1,0 +1,25 @@
+# Pausas dentro do pregão encontradas pela conferência (`python -m motor conferir-b3`) e
+# investigadas. Os candles NÃO foram apagados nem preenchidos: o motor trata cada pausa como
+# lacuna (ordem pendente não atravessa, indicador reaquece, stop executa na reabertura).
+# Só a pausa idêntica (contrato, horário em que o pregão retoma e minutos) é liberada;
+# qualquer lacuna nova continua bloqueando o teste.
+#
+# Investigação: 11/11/2026, Claude, a pedido do Juares, no CSV WIN$N M5 exportado do MT5
+# do simulador da XP em 10/11/2026 (SHA-256 651f10d4...44f6). O WDO$N negociou
+# normalmente nos dois horários: as pausas são só do mini-índice.
+
+[[pausa]]
+contrato = "WIN"
+retoma = "2025-08-21 10:25"
+minutos = 65
+causa = "Falha no sistema de negociação da B3 no mini-índice por volta das 9h15; a B3 informou retorno à normalidade às 10h10 após cancelamento de ofertas pelas corretoras. No CSV: último candle às 9h15, retorno às 10h25, cerca de 1.100 pontos acima."
+fonte = "Reclamação no Reclame Aqui com resposta da B3: https://www.reclameaqui.com.br/b3/travamento-do-sistema-de-negociacao-da-b3-causa-prejuizo-financeiro-em-operacoes-de-mini-indice-futuro_jV_sdY6BcJXQennV/ (comunicado oficial da B3 não encontrado)"
+situacao = "confirmada por fonte secundária com resposta da B3"
+
+[[pausa]]
+contrato = "WIN"
+retoma = "2025-06-03 09:55"
+minutos = 50
+causa = "Sem candles de 9h05 a 9h50 no WIN; o candle das 9h00 existe e o WDO negociou normalmente. Causa não encontrada: pode ser suspensão do mini-índice ou falha do histórico do servidor da XP."
+fonte = "não encontrada (busca em 11/11/2026 sem resultado)"
+situacao = "não confirmada; efeito limitado a um pregão, em que a faixa de abertura fica distorcida"

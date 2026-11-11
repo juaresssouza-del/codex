@@ -28,9 +28,30 @@ def inicio_reserva(criterios: Path = CRITERIOS) -> datetime:
     return datetime.strptime(mes, "%Y-%m").replace(tzinfo=BRT)
 
 
+def ler_pausas_conferidas(caminho: Path | None, contrato: str) -> dict[tuple[int, int], dict]:
+    """Pausas dentro do pregão investigadas e documentadas, por (ts em que o pregão retoma, minutos).
+
+    Cada entrada precisa de contrato, retoma ("AAAA-MM-DD HH:MM", Brasília), minutos, causa,
+    fonte e situação. Só libera a pausa idêntica; qualquer outra continua bloqueando."""
+    if caminho is None:
+        return {}
+    pausas = {}
+    for p in tomllib.loads(Path(caminho).read_text(encoding="utf-8")).get("pausa", []):
+        faltando = [k for k in ("contrato", "retoma", "minutos", "causa", "fonte", "situacao")
+                    if not str(p.get(k, "")).strip()]
+        if faltando:
+            raise ValueError("Pausa conferida sem " + ", ".join(faltando) + f": {p}")
+        if p["contrato"] != contrato:
+            continue
+        ts = int(datetime.strptime(p["retoma"], "%Y-%m-%d %H:%M").replace(tzinfo=BRT).timestamp() * 1000)
+        pausas[(ts, int(p["minutos"]))] = p
+    return pausas
+
+
 def conferir_b3(arquivo: Path, contrato: str, origem: str, *, criterios: Path = CRITERIOS,
                 de: str | None = None, ate: str | None = None,
-                exigir_extremos: bool = True) -> tuple[pd.DataFrame, futuros.RelatorioB3, dict]:
+                exigir_extremos: bool = True,
+                pausas_conferidas: Path | None = None) -> tuple[pd.DataFrame, futuros.RelatorioB3, dict]:
     """Retorna só candles de desenvolvimento. Preços da reserva não são convertidos.
 
     O hash cobre o arquivo inteiro como bytes; o diagnóstico de preços e lacunas
@@ -71,6 +92,8 @@ def conferir_b3(arquivo: Path, contrato: str, origem: str, *, criterios: Path = 
     rel = futuros.RelatorioB3()
     df = pd.DataFrame()
     erros = []
+    conferidas = ler_pausas_conferidas(pausas_conferidas, contrato)
+    usadas = []
     if not selecionadas:
         erros.append("Nenhum candle de desenvolvimento no período pedido.")
     else:
@@ -96,7 +119,8 @@ def conferir_b3(arquivo: Path, contrato: str, origem: str, *, criterios: Path = 
             erros.append("Há abertura de candle fora da grade M5.")
         falhas = np.flatnonzero(mesmo_dia & (saltos != PASSO_MS))
         rel.pausas = [(int(ts[i + 1]), int(max(0, saltos[i] - PASSO_MS) // 60_000)) for i in falhas]
-        if len(falhas):
+        usadas = [conferidas[p] for p in rel.pausas if p in conferidas]
+        if len(usadas) < len(rel.pausas):
             erros.append("Há lacunas ou intervalos irregulares dentro do pregão; conferir a origem antes de testar.")
         tick = futuros.CONTRATOS[contrato].tick
         precos = df[["abertura", "maxima", "minima", "fechamento"]].to_numpy(float) / tick
@@ -116,6 +140,7 @@ def conferir_b3(arquivo: Path, contrato: str, origem: str, *, criterios: Path = 
         "intervalo_declarado": "5m", "reserva_inicio": reserva.isoformat(),
         "periodo_pedido": {"de": de, "ate": ate}, "cobertura_observada": cobertura,
         "linhas_excluidas_por_data": excluidas, "qualidade": asdict(rel),
+        "pausas_conferidas": usadas,
         "liberado_para_teste_dos_dados": not erros, "erros": erros,
         "limites": ["Não comprova a origem nem o contrato apenas pelo conteúdo do CSV.",
                     "Não certifica calendário, pregões ausentes, horários oficiais ou rolagens de vencimento.",

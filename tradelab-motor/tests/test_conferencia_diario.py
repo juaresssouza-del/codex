@@ -179,3 +179,41 @@ def test_cli_diario_exporta_html_seguro_e_json_reprodutivel(tmp_path):
     assert 'name="viewport"' in pagina and "SIMULADOR" in pagina
     main(["diario-b3", "--arquivo", str(arquivo), "--saida", str(pasta)])
     assert json.loads((pasta / "diario.json").read_text())["resumo"] == rel["resumo"]
+
+
+# --- pausas conferidas: liberar só o que foi investigado ---------------------------------
+
+PAUSA = [("2025.01.06", "09:00:00"), ("2025.01.06", "09:05:00"), ("2025.01.06", "09:25:00"), ("2025.01.06", "09:30:00")]
+
+
+def toml_pausas(tmp_path, texto):
+    caminho = tmp_path / "pausas.toml"
+    caminho.write_text(texto, encoding="utf-8")
+    return caminho
+
+
+def test_pausa_nao_conferida_bloqueia(tmp_path):
+    _, rel, m = conferir(mt5(tmp_path, PAUSA))
+    assert not m["liberado_para_teste_dos_dados"] and rel.pausas[0][1] == 15
+
+
+def test_pausa_conferida_libera_e_fica_registrada(tmp_path):
+    p = toml_pausas(tmp_path, '[[pausa]]\ncontrato = "WIN"\nretoma = "2025-01-06 09:25"\nminutos = 15\n'
+                              'causa = "suspensão de teste"\nfonte = "teste de software"\nsituacao = "confirmada"\n')
+    df, rel, m = conferir(mt5(tmp_path, PAUSA), pausas_conferidas=p)
+    assert m["liberado_para_teste_dos_dados"] and len(df) == 4  # nada apagado, nada preenchido
+    assert m["pausas_conferidas"][0]["causa"] == "suspensão de teste"
+
+
+@pytest.mark.parametrize("entrada", [
+    '[[pausa]]\ncontrato = "WIN"\nretoma = "2025-01-06 09:25"\nminutos = 10\ncausa = "x"\nfonte = "y"\nsituacao = "z"\n',
+    '[[pausa]]\ncontrato = "WDO"\nretoma = "2025-01-06 09:25"\nminutos = 15\ncausa = "x"\nfonte = "y"\nsituacao = "z"\n',
+    '[[pausa]]\ncontrato = "WIN"\nretoma = "2025-01-06 09:25"\nminutos = 15\ncausa = ""\nfonte = "y"\nsituacao = "z"\n',
+])
+def test_pausa_conferida_precisa_bater_e_ter_causa(tmp_path, entrada):
+    if 'causa = ""' in entrada:
+        with pytest.raises(ValueError):
+            conferir(mt5(tmp_path, PAUSA), pausas_conferidas=toml_pausas(tmp_path, entrada))
+    else:
+        _, _, m = conferir(mt5(tmp_path, PAUSA), pausas_conferidas=toml_pausas(tmp_path, entrada))
+        assert not m["liberado_para_teste_dos_dados"]

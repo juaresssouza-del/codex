@@ -74,7 +74,7 @@ def _carregar_b3(a):
             criterios=getattr(a, "criterios", conferencia.CRITERIOS),
             de=f"{a.de}-01" if getattr(a, "de", None) else None,
             ate=str(pd.Period(a.ate, "M").end_time.date()) if getattr(a, "ate", None) else None,
-            exigir_extremos=False)
+            exigir_extremos=False, pausas_conferidas=getattr(a, "pausas_conferidas", None))
         if not conf["liberado_para_teste_dos_dados"]:
             raise ValueError("Histórico B3 bloqueado: " + " ".join(conf["erros"]) +
                              " Use conferir-b3 para gravar o diagnóstico.")
@@ -260,7 +260,8 @@ def cmd_painel(a):
 
 def cmd_conferir_b3(a):
     _, _, conf = conferencia.conferir_b3(Path(a.arquivo), a.contrato, a.origem,
-                                        criterios=Path(a.criterios), de=a.de, ate=a.ate)
+                                        criterios=Path(a.criterios), de=a.de, ate=a.ate,
+                                        pausas_conferidas=a.pausas_conferidas)
     destino = Path(a.saida) / f"conferencia-{a.contrato}-{datetime.now(conferencia.BRT):%Y%m%d-%H%M%S-%f}.json"
     diario.salvar_json(destino, conf)
     print(f"Conferência: {destino}")
@@ -293,6 +294,7 @@ def main(argv=None):
         p.add_argument("--pasta", default=str(RAIZ / "dados"))
         p.add_argument("--contrato", choices=sorted(futuros.CONTRATOS), help="minicontrato da B3 (usa o CSV do MT5)")
         p.add_argument("--arquivo", help="CSV do MT5 (padrão: dados/B3/<CONTRATO>_N_M5.csv)")
+        p.add_argument("--pausas-conferidas", help="B3: TOML com as pausas investigadas e documentadas")
 
     def periodo(p):
         p.add_argument("--de", help="AAAA-MM (opcional)")
@@ -338,6 +340,7 @@ def main(argv=None):
     p.add_argument("--de", help="primeira data exigida no arquivo, AAAA-MM-DD")
     p.add_argument("--ate", help="última data exigida no arquivo, AAAA-MM-DD")
     p.add_argument("--saida", default=str(RAIZ / "resultados" / "conferencia"))
+    p.add_argument("--pausas-conferidas", help="TOML com as pausas investigadas (ex.: b3/PAUSAS_CONFERIDAS.toml)")
     p.set_defaults(f=cmd_conferir_b3)
 
     p = sub.add_parser("diario-b3", help="CSV normalizado do simulador → JSON e relatório HTML")

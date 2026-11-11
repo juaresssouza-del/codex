@@ -238,3 +238,34 @@ Leitura:
 - **Capital:** a pior queda de 1 contrato vai de R$ 4,7 mil a R$ 14,3 mil. Para caber em 10%,
   seriam necessários de R$ 47 mil a R$ 143 mil. R$ 1.000 quebra (rodada 5 original).
 - 18 hipóteses testadas no projeto; nenhuma aprovada. O período reservado continua intocado.
+
+## Rodada 5R — 11/11/2026 — reexecução técnica das hipóteses 15–18 e 15b–18b
+
+Registrada antes de rodar. **Não é hipótese nova.** Mesmas estratégias, grades, parâmetros,
+custos, horários e critérios; muda só a versão do motor, corrigida pela auditoria do Codex
+(`AUDITORIA_CODEX.md`, commits `a21d4ce` e `cfde595`): queda medida dentro do candle antes
+da saída, pico anterior ao candle, saída explícita na B3, agregação de 15 min só com blocos
+completos, entrada bloqueada perto da zeragem. Objetivo: saber como as correções mudam os
+números e se o veredito se mantém.
+
+Correções do próprio registro, apontadas pela auditoria:
+- O `rompimento_curto` tem **8 combinações**, não 6 como escrito na rodada 5 (saída ≤
+  entrada em entrada 6/12/20 × saída 3/6/12). O código não mudou: as rodadas 5 e 5R usam 8.
+- A "saída pela mínima de M candles" das hipóteses 13 e 14 é saída **por sinal**, não um
+  stop móvel que só sobe.
+
+Dados: os mesmos CSVs do MT5 (WIN SHA-256 `651f10d4…44f6`, WDO `5b8167f4…2a26`), sem a
+reserva (07/2026 em diante). A conferência (`conferir-b3`) bloqueou o WIN por duas pausas
+dentro do pregão; foram investigadas e documentadas em `b3/PAUSAS_CONFERIDAS.toml`, sem
+apagar nem preencher candles: 21/08/2025 (falha da B3, confirmada por resposta da B3 no
+Reclame Aqui) e 03/06/2025 (causa não encontrada; afeta um pregão).
+
+Configurações (iguais às da rodada 5):
+- 15–18: `--capital 1000 --risco 100 --exposicao 100 --max-contratos 1 --stop 0.5 --alvo 0
+  --lado ambos --treino 12 --min-operacoes-treino 30`.
+- 15b–18b: as mesmas, com `--capital 100000`.
+- 15/15b WIN 5m `abertura`; 16/16b WIN 15m `rompimento_curto`; 17/17b WDO 5m `abertura`;
+  18/18b WDO 15m `rompimento_curto`. WIN com `--pausas-conferidas b3/PAUSAS_CONFERIDAS.toml`.
+
+Comparação a reportar, antigo contra novo: resultado líquido, custos, fator de lucro,
+número de operações e maior queda do saldo.
