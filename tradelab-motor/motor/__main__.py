@@ -38,7 +38,7 @@ def _risco(a) -> Risco:
     return Risco(capital=a.capital, risco_por_trade=a.risco / 100, exposicao_max=a.exposicao / 100,
                  stop=a.stop / 100 or None, alvo=a.alvo / 100 or None,
                  perda_diaria_max=a.perda_diaria / 100 or None, max_operacoes_dia=a.max_operacoes_dia or None,
-                 max_contratos=a.max_contratos or None)
+                 max_contratos=a.max_contratos or None, martingale=a.martingale)
 
 
 def _custos(a):
@@ -317,6 +317,8 @@ def main(argv=None):
                        help="entra por ordem limitada no fechamento do sinal (sem slippage, pode não executar)")
         g.add_argument("--lado", default="comprado", choices=["comprado", "ambos"], help="B3: só comprado ou também vendido")
         g.add_argument("--custo-lado", type=float, default=None, help="B3: R$ por contrato em cada lado (padrão do contrato)")
+        g.add_argument("--martingale", action="store_true",
+                       help="B3: dobra os contratos depois de cada perda (até a margem e --max-contratos)")
         g.add_argument("--max-contratos", type=int, default=0, help="B3: teto de contratos por operação (0 = sem teto)")
         g.add_argument("--slippage-ticks", type=int, default=1, help="B3: ticks contra você em cada execução a mercado")
         g.add_argument("--sem-filtros", action="store_true", help="ignora lote/notional mínimos (modo TradeLab)")

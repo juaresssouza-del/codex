@@ -61,6 +61,26 @@ def sinais_rsi(df: pd.DataFrame, periodo: int, compra: float, saida: float) -> n
         return _sinal(r < compra, r > saida)
 
 
+def _forca(df: pd.DataFrame, periodo: int, k: float, corpo: float = 0.6) -> np.ndarray:
+    """Candle de força: amplitude >= k vezes a média dos `periodo` candles anteriores e corpo
+    >= `corpo` da amplitude. +1 se de alta, -1 se de baixa."""
+    amp = (df.maxima - df.minima).to_numpy(float)
+    media = pd.Series(amp).rolling(periodo).mean().shift(1).to_numpy()
+    corpo_ = (df.fechamento - df.abertura).to_numpy(float)
+    with np.errstate(invalid="ignore"):
+        forte = (amp >= k * media) & (np.abs(corpo_) >= corpo * amp) & (amp > 0)
+    return _sinal(forte & (corpo_ > 0), forte & (corpo_ < 0))
+
+
+def sinais_forca(df: pd.DataFrame, periodo: int, k: float) -> np.ndarray:
+    return _forca(df, periodo, k)
+
+
+def sinais_forca_reversao(df: pd.DataFrame, periodo: int, k: float) -> np.ndarray:
+    """Aposta contra o candle de força: exaustão."""
+    return (-_forca(df, periodo, k)).astype(np.int8)
+
+
 def sinais_abertura(df: pd.DataFrame, candles: int) -> np.ndarray:
     """Rompimento da faixa de abertura: máxima e mínima dos primeiros `candles` do pregão
     (dia em Brasília). Depois deles, +1 se fechar acima da faixa, -1 se fechar abaixo."""
@@ -128,6 +148,17 @@ ESTRATEGIAS = {
         grade={"entrada": [6, 12, 20], "saida": [3, 6, 12]},
         aquecimento=lambda p: max(p["entrada"], p["saida"]) + 1,
         restricao=lambda p: p["saida"] <= p["entrada"]),
+    "forca": Estrategia(
+        "forca", "Candle de força: entra a favor de um candle grande e de corpo cheio", sinais_forca,
+        padrao={"periodo": 20, "k": 2.0},
+        grade={"periodo": [10, 20], "k": [1.5, 2.0, 3.0]},
+        aquecimento=lambda p: p["periodo"] + 1),
+    "forca_reversao": Estrategia(
+        "forca_reversao", "Candle de força ao contrário: entra contra um candle grande (exaustão)",
+        sinais_forca_reversao,
+        padrao={"periodo": 20, "k": 2.0},
+        grade={"periodo": [10, 20], "k": [1.5, 2.0, 3.0]},
+        aquecimento=lambda p: p["periodo"] + 1),
     "rsi": Estrategia(
         "rsi", "Reversão: compra com RSI baixo, sai quando ele recupera", sinais_rsi,
         padrao={"periodo": 14, "compra": 30, "saida": 55},

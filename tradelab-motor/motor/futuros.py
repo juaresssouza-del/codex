@@ -192,14 +192,16 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray | Callable[[int, int],
     pico, dd_f, dd_m = saldo, 0.0, 0.0
     rejeitadas = bloqueadas = posicionado = 0
     dia_atual, base_dia, pnl_dia, entradas_dia = None, saldo, 0.0, 0
+    perdas_seguidas = 0
 
     def fechar(bruto, motivo, ts, i, slip_saida):
-        nonlocal saldo, pos, pnl_dia
+        nonlocal saldo, pos, pnl_dia, perdas_seguidas
         lado, q = pos["lado"], pos["q"]
         fill = bruto - lado * slip_saida
         pnl = lado * (fill - pos["entrada"]) * vp * q - 2 * cl * q
         saldo += pnl
         pnl_dia += pnl
+        perdas_seguidas = perdas_seguidas + 1 if pnl < 0 else 0
         gasto = 2 * cl * q + (pos["slip"] + slip_saida) * vp * q
         ops.append((pos["ts"], ts, pos["i"], i, pos["entrada"], fill, q, motivo, pnl,
                     pnl / pos["base"] * 100, gasto, lado))
@@ -219,7 +221,9 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray | Callable[[int, int],
             rejeitadas += 1
             return
         q = math.floor(saldo * risco.exposicao_max / c_.margem + 1e-9)
-        if stop is not None:
+        if risco.martingale:  # ignora o risco por operação: é exatamente o que o martingale faz
+            q = min(q, 2 ** perdas_seguidas)
+        elif stop is not None:
             perda = (abs(entrada - stop) + slip) * vp + 2 * cl
             q = min(q, math.floor(saldo * risco.risco_por_trade / perda + 1e-9))
         if risco.max_contratos is not None:

@@ -305,3 +305,32 @@ Leitura:
   rompimento, e continua menor que o custo.
 - A queda máxima em reais não mudou nos testes de 5 min. A medição corrigida da queda
   dentro do candle só fez diferença nos de 15 min.
+
+## Rodada 6 — 11/11/2026 — B3: média móvel, candle de força e martingale
+
+Registrada antes de rodar. Pedido do Juares: testar métodos que gerem lucro com
+**R$ 1.000,90**, podendo usar média móvel, candle de força e martingale.
+
+Já são 18 hipóteses (26 medições contando a 5R). Com mais 7, uma delas pode superar 95%
+do aleatório só por sorte. **Regra mais dura, fixada agora:** um método só vira candidato
+se, na medição com capital que não quebra (R$ 100 mil, 1 contrato), passar em todos os
+critérios de `criterios.toml` **no WIN e no WDO ao mesmo tempo**. Só então vai ao período
+reservado, uma vez.
+
+Desenho comum (igual ao da rodada 5): 5 min, comprado e vendido, stop 0,5%, sem alvo,
+zeragem 18h00, sem entrada depois das 17h30, custo de robô XP (WIN R$ 1,35 e WDO R$ 2,24
+por contrato e lado) mais 1 tick, treino 12 meses, teste 1, mínimo de 30 operações no
+treino, dados de 11/2021 a 06/2026, WIN com `b3/PAUSAS_CONFERIDAS.toml`. Cada hipótese
+roda duas vezes: com **R$ 1.000,90** (o capital real) e com **R$ 100 mil** (medição).
+
+| # | Contrato | Estratégia | Grade |
+|---|---|---|---|
+| 19 / 20 | WIN / WDO | `sma`: cruzamento de médias, dentro do pregão | 16 combinações |
+| 21 / 22 | WIN / WDO | `forca`: entra a favor de candle de força (amplitude ≥ k × média dos N anteriores, corpo ≥ 60%) | N 10/20 × k 1,5/2/3 |
+| 23 / 24 | WIN / WDO | `forca_reversao`: o mesmo candle, entrando contra (exaustão) | idem |
+| 25 | WIN | `abertura` (a melhor da rodada 5) com **martingale**: dobra os contratos após cada perda, volta a 1 após um ganho, até a margem e no máximo 16 | 3 combinações |
+
+Martingale, leitura combinada antes: ele não muda o resultado médio por contrato; só
+redistribui o risco. É avaliado no capital real (R$ 1.000,90) e também em R$ 100 mil para
+mostrar o tamanho das perdas. Só seria aceito se passasse em todos os critérios com o
+capital real.

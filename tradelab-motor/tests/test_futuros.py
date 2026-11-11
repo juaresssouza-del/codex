@@ -253,3 +253,43 @@ def test_rompimento_curto_cabe_no_pregao():
     assert all(e.aquecimento(p) <= 21 for p in e.combinacoes())  # 15 min: 37 candles por pregão
     df = pregoes(dias=2, semente=7)
     assert set(np.unique(e.sinais(df, **e.padrao))) <= {-1, 0, 1}
+
+
+# --- rodada 6: martingale e candle de força ------------------------------------------------
+
+def test_martingale_dobra_depois_da_perda_e_volta_a_1_depois_do_ganho():
+    df = pregoes(dias=1)
+    for i in (8, 18):          # dois stops seguidos
+        df.loc[i, "minima"] = 99_000.0
+    df.loc[31:, ["abertura", "maxima", "minima", "fechamento"]] = 100_300.0  # a 3ª ganha
+    s = sinais(len(df), **{"5": 1, "15": 1, "25": 1, "40": -1, "50": 1, "60": -1})
+    risco = Risco(capital=100_000, risco_por_trade=1.0, exposicao_max=1.0, stop=0.005, alvo=None,
+                  max_contratos=16, martingale=True)
+    r = executar_futuros(df, s, risco, SEM_CUSTO, WIN)
+    assert list(r.operacoes.quantidade[:4]) == [1, 2, 4, 1]
+
+
+def test_martingale_fica_limitado_pela_margem():
+    df = pregoes(dias=1)
+    for i in (8, 18, 28):
+        df.loc[i, "minima"] = 99_000.0
+    s = sinais(len(df), **{"5": 1, "15": 1, "25": 1, "35": 1})
+    risco = Risco(capital=1_000, risco_por_trade=1.0, exposicao_max=1.0, stop=0.005, alvo=None,
+                  max_contratos=16, martingale=True)
+    r = executar_futuros(df, s, risco, SEM_CUSTO, WIN)
+    # 1, 2, 4 e depois 8 pedidos, mas o saldo restante só tem margem para menos contratos
+    assert list(r.operacoes.quantidade[:3]) == [1, 2, 4]
+    assert r.operacoes.quantidade.iloc[3] < 8
+
+
+def test_candle_de_forca_segue_e_reverte():
+    df = pregoes(dias=1, semente=2)
+    i = 40
+    media = (df.maxima - df.minima).iloc[i - 20:i].mean()
+    df.loc[i, ["abertura", "minima"]] = df.fechamento[i - 1]
+    df.loc[i, "maxima"] = df.abertura[i] + 4 * media
+    df.loc[i, "fechamento"] = df.maxima[i] - 0.05 * media  # candle de alta forte, fecha perto da máxima
+    seguir = ESTRATEGIAS["forca"].sinais(df, periodo=20, k=2.0)
+    reverter = ESTRATEGIAS["forca_reversao"].sinais(df, periodo=20, k=2.0)
+    assert seguir[i] == 1 and reverter[i] == -1
+    assert set(np.unique(seguir)) <= {-1, 0, 1}

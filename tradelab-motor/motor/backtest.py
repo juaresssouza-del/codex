@@ -35,6 +35,7 @@ class Risco:
     perda_diaria_max: float | None = None   # fração do patrimônio no início do dia (BRT)
     max_operacoes_dia: int | None = None
     max_contratos: int | None = None  # B3: teto de contratos por operação
+    martingale: bool = False          # B3: dobra os contratos depois de cada perda, volta a 1 depois de um ganho
 
     def __post_init__(self):
         if not math.isfinite(self.capital) or not 0 < self.capital:
