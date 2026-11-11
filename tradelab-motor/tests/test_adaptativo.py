@@ -14,7 +14,7 @@ def barras(dias=("2024-01-02", "2024-01-03", "2025-02-03"), minutos=5, contrato=
     rng = np.random.default_rng(83)
     tick = futuros.CONTRATOS[contrato].tick
     ts = np.concatenate([pd.date_range(d + " 09:00", periods=540 // minutos, freq=f"{minutos}min",
-                                      tz="America/Sao_Paulo").asi8 // 1_000_000 for d in dias])
+                                      tz="America/Sao_Paulo").as_unit("ms").asi8 for d in dias])
     base = 120_000 if contrato == "WIN" else 6000
     close = base + np.cumsum(rng.integers(-3, 4, len(ts))) * tick
     op = np.r_[base, close[:-1]]
