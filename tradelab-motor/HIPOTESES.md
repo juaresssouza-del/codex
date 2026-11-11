@@ -609,3 +609,30 @@ comparar várias formas de operar, aprender com resultados anteriores e usar som
 Implementação e instruções em [b3/MOTOR_ADAPTATIVO.md](b3/MOTOR_ADAPTATIVO.md).
 Estado inicial: apenas registro; testes de software deverão usar preços artificiais.
 
+
+Resultados da rodada 10 (seletor adaptativo, executado pelo Claude em 11/11/2026 com as
+regras do Codex sem alteração; 1 contrato; avaliação depois dos 12 primeiros meses):
+
+| # | Mercado, tempo | Ops | Fator de lucro | Antes dos custos (R$) | Custos (R$) | Líquido (R$) | Queda | Supera o aleatório | Veredito |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| 55 | WIN 5 min | 826 | 0,95 | +2.016 | 3.882 | −1.866 | 3,9% | 74,5% | Reprovada |
+| 55 | WDO 5 min | 557 | 0,78 | −1.100 | 8.065 | −9.165 | 10,5% | 31,0% | Reprovada |
+| 56 | WIN 15 min | 459 | 0,92 | +151 | 2.157 | −2.006 | 4,0% | 49,5% | Reprovada |
+| 56 | WDO 15 min | 280 | 0,55 | −10.665 | 4.054 | −14.719 | 15,1% | 0,0% | Reprovada |
+| 57 | WIN 30 min | 354 | 0,94 | +211 | 1.664 | −1.453 | 3,0% | 45,0% | Reprovada |
+| 57 | WDO 30 min | 133 | 0,92 | +905 | 1.926 | −1.021 | 3,8% | 64,5% | Reprovada |
+
+Antes da execução, 5 testes do Codex falhavam neste ambiente (pandas 3 usa microssegundos em
+`pd.date_range`); corrigido só o gerador de horários dos testes (`e8ef429`), sem mudar o motor.
+
+Leitura:
+- **Escolher a estratégia "que vinha ganhando" não funcionou:** o seletor perde nos seis
+  casos. Ele perde menos que as piores estratégias fixas (fica mais tempo de fora), mas fica
+  abaixo das melhores em todos os casos. O resultado recente de uma estratégia não indicou o
+  próximo: não há persistência para a memória aproveitar.
+- Os controles fixos (36 medições, sem busca de parâmetros) não são candidatos: são
+  diagnóstico. Observação que se repete de novo: entradas **a favor de movimento forte**
+  (`forca` e `canal_aceleracao`) são as únicas com fator ≥ 1 em vários casos (WIN 30 min:
+  1,16 e 1,73; WDO 15 min aceleração: 1,12, repetindo a rodada 9). Sem nova hipótese
+  registrada, isso não vira teste.
+- 57 hipóteses no projeto; nenhuma aprovada. Reserva intocada.

@@ -82,6 +82,12 @@ Conclusões:
   15 min é positiva depois dos custos nos dois mercados (fator 1,17 e 1,10), mas abaixo da
   régua. Tempos maiores: operações de menos para validar com 5 anos.
 
+### 9. Rodada 10: seletor adaptativo do Codex (11/11/2026)
+- Seletor que escolhe, por contexto, entre 6 estratégias, pela memória das últimas operações.
+- Executado no histórico real: reprovado nas 6 medições (WIN e WDO, 5/15/30 min). Perde
+  menos que as piores estratégias fixas, mas fica abaixo das melhores. Não há persistência
+  de desempenho para a memória aproveitar.
+
 ## Próximos passos
 
 **Atualização de auditoria (Codex, motor 0.2.0):** foram corrigidos erros reproduzíveis
