@@ -555,3 +555,57 @@ Leitura:
   de entrada que aparece positivo. Registrado como observação; só volta como hipótese nova,
   com dados que não viu (simulador ao vivo).
 - 54 hipóteses no projeto; nenhuma aprovada. Reserva intocada.
+
+
+## Rodada 10 — 11/11/2026 — seletor adaptativo por contexto (55–57)
+
+Registrada antes de implementar e de executar em dados de mercado. Pedido do Juares:
+comparar várias formas de operar, aprender com resultados anteriores e usar somente
+5, 15 ou 30 minutos. **Hipóteses novas, ainda não executadas nem aprovadas.**
+
+- 55: seletor em 5 min; 56: em 15 min; 57: em 30 min. Cada hipótese exige passar
+  no WIN e no WDO, no mesmo tempo, com todos os critérios de `criterios.toml`.
+- Biblioteca congelada, sem busca de parâmetros: `sma` (9/21),
+  `rompimento_curto` (12/6), `forca` (20, k=2),
+  `forca_reversao` (20, k=2), `canal_suporte` (40, R²=0,5),
+  `canal_aceleracao` (40, R²=0,5). Saídas seguem os sinais de cada regra.
+  Um sinal oposto fecha a posição; não vira a mão na mesma abertura.
+- Indicadores atravessam pregões; lacuna intradiária reinicia aquecimento. No WIN,
+  o ajuste de vencimento existente só afeta indicadores, nunca execução.
+- Contexto no fechamento: regressão dos últimos 20 fechamentos; alta/baixa se
+  R² ≥ 0,5, conforme inclinação; lateral nos demais. Amplitude do candle atual
+  > 3 vezes a média dos 20 anteriores = choque, sem novas entradas.
+- Memória separada por especialista e contexto da entrada: últimas 60 operações
+  simuladas encerradas. Mínimo 30; média líquida > 0 e fator de lucro ≥ 1,3.
+  Escolhe a maior média líquida; empate por nome. Sem elegível: fica de fora.
+  Só entram na memória resultados encerrados em candle **anterior** ao da decisão.
+  Especialistas simulados continuam em paralelo, inclusive quando não escolhidos.
+- Pode escolher outra estratégia a cada nova entrada; mantém a dona da posição
+  até a saída. Nenhuma troca de parâmetros, risco ou regras depois de perder.
+- Comum: 1 contrato no máximo; capital de medição R$100 mil, risco por trade 1%,
+  exposição máxima 100% (restrições de medição, não recomendação de capital);
+  stop 0,5%, sem alvo percentual, limite de perda diária 1%, no máximo 10
+  entradas/dia; última entrada 17h30 e zeragem 18h. Custos de `futuros.CUSTOS`
+  (premissas, rota EA/XP não confirmada), com slippage existente.
+- Avaliação sequencial: primeiros 12 meses de calendário só alimentam as
+  simulações; resultado medido apenas depois. Memória pode atualizar com
+  operações anteriores desse período de avaliação, já encerradas, como faria ao
+  vivo. É avaliação online com política fixa, sem otimização por grade.
+- Controles: cada especialista fixo no mesmo período, com os mesmos riscos/custos;
+  ficar de fora; 200 rodadas aleatórias, semente 42, pelo método existente.
+- Diagnósticos separados, **sem valor de estratégia executável ou aprovação**:
+  melhor especialista de cada dia escolhido depois do fechamento (inclui ficar
+  de fora) e sinal invertido nos mesmos instantes de entrada/saída com custo
+  simétrico. Não são entrada para a memória nem resultados fora da amostra.
+- Dados somente anteriores a julho/2026; conferência M5 antes de qualquer sinal.
+  Não liberar `--usar-reserva`. A versão do vídeo AAR não entra na biblioteca
+  enquanto sua especificação estiver pendente.
+- Registrar todas as seis medições (três tempos × dois mercados), mesmo sem
+  operações. Não selecionar um tempo por lucro e descartar os outros do relatório.
+  Alterar biblioteca, contexto, memória ou custos exige outra hipótese prévia.
+- Mesmo que passe a régua, este estudo reutiliza histórico já muito pesquisado:
+  confirmação prospectiva no simulador é necessária; reserva continua bloqueada.
+
+Implementação e instruções em [b3/MOTOR_ADAPTATIVO.md](b3/MOTOR_ADAPTATIVO.md).
+Estado inicial: apenas registro; testes de software deverão usar preços artificiais.
+
