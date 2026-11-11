@@ -334,3 +334,35 @@ Martingale, leitura combinada antes: ele não muda o resultado médio por contra
 redistribui o risco. É avaliado no capital real (R$ 1.000,90) e também em R$ 100 mil para
 mostrar o tamanho das perdas. Só seria aceito se passasse em todos os critérios com o
 capital real.
+
+Resultados da rodada 6 (fora da amostra, 11/2022 a 06/2026):
+
+Medição com R$ 100 mil e 1 contrato (decide pela regra registrada):
+
+| # | Ops | Acerto | Fator de lucro | Antes dos custos (R$) | Custos (R$) | Líquido (R$) | Pior queda (R$) | Supera o aleatório | Veredito |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 19b WIN média móvel | 1.710 | 39,5% | 0,86 | +256 | 8.037 | −7.781 | 9.855 | 62,0% | Reprovada |
+| 20b WDO média móvel | 1.142 | 36,1% | 0,71 | −250 | 16.536 | −16.786 | 17.117 | 41,0% | Reprovada |
+| 21b WIN força a favor | 789 | 38,9% | 0,84 | −2.547 | 3.708 | −6.255 | 7.524 | 17,0% | Reprovada |
+| 22b WDO força a favor | 166 | 44,6% | **1,31** | +6.245 | 2.404 | **+3.841** | 2.617 | **100%** | Reprovada (166 < 200 ops; WIN falha) |
+| 23b WIN força contra | 232 | 48,3% | 0,83 | −1.289 | 1.090 | −2.379 | 2.959 | 10,5% | Reprovada |
+| 24b WDO força contra | 293 | 46,1% | 0,68 | −4.065 | 4.243 | −8.308 | 8.728 | 3,5% | Reprovada |
+| 25b WIN abertura + martingale | 1.430 | 41,5% | 0,95 | +10.273 | 26.611 | −16.338 | **46.261** | 67,5% | Reprovada |
+
+Com o capital real, R$ 1.000,90: **as 7 quebram a conta** (−78% a −90%). O martingale (25)
+quebrou nas **3 primeiras operações**: 3 perdas seguidas (1, 2 e 4 contratos) levaram
+R$ 855, e o saldo restante não cobria mais a margem.
+
+Leitura:
+- **Média móvel e candle de força contra o movimento: sem sinal.** Perdem antes dos custos
+  ou ficam em zero, e não superam o aleatório.
+- **Martingale:** dobrar a posição multiplicou os custos (R$ 26,6 mil contra R$ 6,9 mil da
+  mesma estratégia com 1 contrato) e a pior queda (R$ 46 mil contra R$ 7,8 mil). Não mudou o
+  resultado médio por contrato. Confirmado com os dados: martingale acelera a quebra.
+- **22b (WDO, candle de força a favor) é a melhor medição do projeto na B3:** fator de lucro
+  1,31, +R$ 3.841, supera 100% do aleatório, queda de 2,6%. **Não vira candidato** pela regra
+  fixada antes: falha no número de operações (166 < 200) e o mesmo método perde no WIN (21b,
+  fator 0,84). Com 33 medições feitas, um resultado assim em um único mercado é exatamente o
+  falso positivo que a regra existe para barrar. Fica registrado como observação; só pode
+  voltar como hipótese nova, registrada antes, com dados que ele ainda não viu.
+- 25 hipóteses testadas no projeto; nenhuma aprovada. O período reservado continua intocado.

@@ -69,6 +69,12 @@ Conclusões:
   5 min o dinheiro não mudou; o aleatório corrigido ficou mais exigente, e o rompimento deixou
   de superá-lo. Só a faixa de abertura mantém sinal antes dos custos, ainda menor que o custo.
 
+### 7. Rodada 6 (hipóteses 19 a 25), 11/11/2026
+- Média móvel, candle de força (a favor e contra) e martingale, no WIN e no WDO.
+- Todas reprovadas. Com R$ 1.000,90 todas quebram; o martingale quebrou em 3 operações.
+- Melhor medição: candle de força a favor no WDO (fator de lucro 1,31, +R$ 3,8 mil), mas
+  só 166 operações e o mesmo método perde no WIN. Não vira candidato pela regra registrada.
+
 ## Próximos passos
 
 **Atualização de auditoria (Codex, motor 0.2.0):** foram corrigidos erros reproduzíveis
