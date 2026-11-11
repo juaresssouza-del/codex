@@ -150,4 +150,14 @@ comprar e segurar com a mesma exposição rendeu mais. A busca em cripto foi enc
 | `motor/painel.py` | Exportação para o importador do TradeLab |
 | `motor/conferencia.py` | Conferência MT5 M5, hash, cobertura e recorte anterior à reserva |
 | `motor/diario.py` | Diário passivo do simulador, custos e relatório HTML/JSON |
+| `motor/adaptativo.py` | Seletor de especialistas por contexto, memória causal e diagnóstico diário B3 |
 | `criterios.toml` | A régua, fixada antes dos testes |
+
+## Pesquisa adaptativa B3 (0.4.0)
+
+`python -m motor adaptativo-b3 --help`: compara seis especialistas e escolhe com base
+em resultados simulados já encerrados, com opção de ficar de fora. Tempos permitidos:
+5, 15 e 30 minutos; hipóteses 55–57 registradas antes de testar em mercado. Mantém a
+reserva bloqueada. Código verificado com preços artificiais; rentabilidade ainda não
+testada nos CSVs reais. Instruções e limites em [b3/MOTOR_ADAPTATIVO.md](b3/MOTOR_ADAPTATIVO.md).
+

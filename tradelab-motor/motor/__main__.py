@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import conferencia, dados, diario, futuros, metricas, painel, validacao
+from . import adaptativo, conferencia, dados, diario, futuros, metricas, painel, validacao
 from .backtest import Risco, executar
 from .estrategias import ESTRATEGIAS
 from .mercado import SEM_FILTROS, Custos, Mercado
@@ -357,6 +357,15 @@ def main(argv=None):
     p.add_argument("--saida", default=str(RAIZ / "resultados" / "conferencia"))
     p.add_argument("--pausas-conferidas", help="TOML com as pausas investigadas (ex.: b3/PAUSAS_CONFERIDAS.toml)")
     p.set_defaults(f=cmd_conferir_b3)
+
+    p = sub.add_parser("adaptativo-b3", help="pesquisa de vários especialistas com memória causal; hipóteses 55–57")
+    p.add_argument("--arquivo", required=True, help="CSV M5 de barras exportado pelo MT5")
+    p.add_argument("--contrato", required=True, choices=sorted(futuros.CONTRATOS))
+    p.add_argument("--origem", required=True, help="origem declarada; nunca credenciais")
+    p.add_argument("--minutos", type=int, required=True, choices=[5, 15, 30])
+    p.add_argument("--pausas-conferidas", type=Path, help="TOML das pausas investigadas")
+    p.add_argument("--saida", default=str(RAIZ / "resultados" / "adaptativo"))
+    p.set_defaults(f=adaptativo.executar_comando)
 
     p = sub.add_parser("diario-b3", help="CSV normalizado do simulador → JSON e relatório HTML")
     p.add_argument("--arquivo", required=True, help="CSV separado por ;, no modelo b3/diario-modelo.csv")

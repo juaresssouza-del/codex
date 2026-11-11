@@ -3,6 +3,16 @@
 Leia este arquivo primeiro. Ele resume o que foi feito no `tradelab-motor/`, o que foi
 concluído e o que **não** fazer. Os detalhes estão nos arquivos citados.
 
+**Entrega posterior — 0.4.0 (11/11/2026):** seletor adaptativo de pesquisa em
+`motor/adaptativo.py`, comando `adaptativo-b3`, para 5/15/30 minutos. Hipóteses 55–57
+registradas no commit `c381e37` antes da implementação e de qualquer teste de mercado.
+Seis especialistas, contexto calculado com o passado, memória de simulações encerradas,
+opção de ficar de fora, registro de decisões e diagnóstico diário retrospectivo separado.
+184 testes passaram e 4 foram pulados; os 27 casos novos usam somente dados artificiais.
+Nenhum novo backtest real, nenhuma hipótese aprovada, reserva e critérios preservados.
+O relato antigo de 18 hipóteses abaixo é histórico; consultar `HIPOTESES.md` e
+[b3/MOTOR_ADAPTATIVO.md](b3/MOTOR_ADAPTATIVO.md) para o estado atual e a continuação.
+
 **Complemento posterior — motor 0.2.0:** leia também [AUDITORIA_CODEX.md](AUDITORIA_CODEX.md).
 Foram corrigidos erros de execução e validação. Os números abaixo são registros da
 versão anterior e não foram recalculados; não constituem resultado validado da versão

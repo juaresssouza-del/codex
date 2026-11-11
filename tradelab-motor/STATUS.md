@@ -143,3 +143,21 @@ prévio da revisão, sem usar a reserva nem operar dinheiro real.
   Nenhuma hipótese executada ou aprovada nesta entrega; critérios e estratégias preservados.
 - Uso e modelo em [b3/COLOCAR_EM_PRATICA.md](b3/COLOCAR_EM_PRATICA.md).
 - Faltam os CSVs locais e relatórios completos para a conferência/reexecução dos números antigos.
+
+## Pesquisa adaptativa 0.4.0 — 11/11/2026
+
+- Pedido do Juares: várias formas de operar conforme o mercado, aprendizado com perdas
+  e ganhos, nos tempos de 5, 15 e 30 minutos.
+- Hipóteses 55–57 registradas antes da implementação no commit `c381e37`.
+- `adaptativo-b3`: seis especialistas de parâmetros fixos, contexto causal e memória
+  separada por contexto; só aprende com operações simuladas encerradas em barras
+  anteriores à decisão. Pode ficar de fora; responsável pela posição não muda até sair.
+- Relatórios de decisões, operações, comparação diária, custos e inverso com mesmos
+  instantes. A melhor escolha retrospectiva do dia é identificada e não alimenta o seletor.
+- Mesma régua, custo existente como premissa, até um contrato e reserva bloqueada.
+  Nenhuma integração com corretora ou alteração do PWA.
+- 184 testes passaram, 4 da amostra real foram pulados. Os 27 novos casos só usaram dados
+  artificiais. Nenhuma medição financeira nova com WIN/WDO real nem aprovação.
+- Próximo passo: no ambiente com os CSVs M5, rodar todas as seis combinações registradas
+  (WIN/WDO × 5/15/30), sem modificar parâmetros ou abrir a reserva. Depois, avaliação
+  conjunta e confirmação prospectiva em simulador. Ver [b3/MOTOR_ADAPTATIVO.md](b3/MOTOR_ADAPTATIVO.md).

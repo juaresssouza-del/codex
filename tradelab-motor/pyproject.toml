@@ -1,6 +1,6 @@
 [project]
 name = "tradelab-motor"
-version = "0.3.0"
+version = "0.4.0"
 description = "Motor de pesquisa e backtest do TradeLab (Binance Spot e futuros B3)"
 requires-python = ">=3.11"
 dependencies = ["numpy>=1.26", "pandas>=2.1", "tzdata>=2024.1"]
