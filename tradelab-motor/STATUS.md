@@ -61,6 +61,14 @@ Conclusões:
   aleatório, mas o custo de robô na XP (~R$ 4,70 por operação no WIN) é maior que o ganho.
   Reprovadas. Capital para a pior queda caber em 10%: R$ 47 mil a R$ 143 mil por contrato.
 
+### 6. Auditoria do Codex e reexecução 5R (11/11/2026)
+- O Codex corrigiu medições do motor (`AUDITORIA_CODEX.md`). Revisado pelo Claude; 133 testes.
+- A conferência dos CSVs bloqueou o WIN por duas pausas no pregão; documentadas em
+  `b3/PAUSAS_CONFERIDAS.toml` (uma é falha confirmada da B3), sem apagar nem preencher dados.
+- Reexecução das 8 medições da rodada 5: **veredito igual, todas reprovadas.** Nos testes de
+  5 min o dinheiro não mudou; o aleatório corrigido ficou mais exigente, e o rompimento deixou
+  de superá-lo. Só a faixa de abertura mantém sinal antes dos custos, ainda menor que o custo.
+
 ## Próximos passos
 
 **Atualização de auditoria (Codex, motor 0.2.0):** foram corrigidos erros reproduzíveis

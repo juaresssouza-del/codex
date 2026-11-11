@@ -269,3 +269,39 @@ Configurações (iguais às da rodada 5):
 
 Comparação a reportar, antigo contra novo: resultado líquido, custos, fator de lucro,
 número de operações e maior queda do saldo.
+
+Resultados da 5R (motor 0.3.0), antigo → novo. Fora da amostra, 11/2022 a 06/2026.
+
+Com R$ 1.000 (15–18):
+
+| # | Operações | Fator de lucro | Líquido (R$) | Custos (R$) | Pior queda (R$) | Supera o aleatório | Veredito |
+|---|---|---|---|---|---|---|---|
+| 15 WIN abertura 5m | 60 → 60 | 0,82 → 0,82 | −860 → −860 | 282 → 282 | 1.313 → 1.313 | 80,0% → 23,5% | Reprovada |
+| 16 WIN rompimento 15m | 118 → 682 | 0,84 → 0,96 | −886 → −984 | 555 → 3.205 | 1.068 → 2.264 | 55,5% → 0,0% | Reprovada |
+| 17 WDO abertura 5m | 9 → 9 | 0,48 → 0,48 | −840 → −840 | 130 → 130 | 1.166 → 1.166 | 45,0% → 3,5% | Reprovada |
+| 18 WDO rompimento 15m | 19 → 19 | 0,64 → 0,64 | −935 → −935 | 275 → 275 | 1.200 → 1.200 | 17,0% → 0,0% | Reprovada |
+
+Com R$ 100 mil, 1 contrato (15b–18b):
+
+| # | Operações | Fator de lucro | Antes dos custos (R$) | Custos (R$) | Líquido (R$) | Pior queda (R$) | Supera o aleatório | Veredito |
+|---|---|---|---|---|---|---|---|---|
+| 15b WIN abertura 5m | 1.459 → 1.459 | 0,99 → 0,99 | +6.255 → +6.255 | 6.857 → 6.857 | −602 → −602 | 7.796 → 7.796 | 99,0% → 96,5% | Reprovada |
+| 16b WIN rompimento 15m | 975 → 956 | 0,93 → 0,95 | +1.727 → +2.478 | 4.583 → 4.493 | −2.856 → −2.015 | 4.668 → 3.916 | 98,5% → 86,0% | Reprovada |
+| 17b WDO abertura 5m | 1.164 → 1.164 | 0,90 → 0,90 | +4.945 → +4.945 | 16.855 → 16.855 | −11.910 → −11.910 | 14.306 → 14.306 | 100% → 96,0% | Reprovada |
+| 18b WDO rompimento 15m | 688 → 687 | 0,81 → 0,82 | +1.715 → +2.010 | 9.962 → 9.948 | −8.247 → −7.938 | 9.344 → 9.034 | 100% → 78,5% | Reprovada |
+
+Leitura:
+- **Veredito igual: as 8 reprovadas.** Nenhuma correção virou um resultado negativo em positivo.
+- **5 minutos (15, 17): operações e dinheiro idênticos.** As correções de execução não
+  alteraram nenhuma operação; mudou só a comparação com o aleatório.
+- **15 minutos (16, 18): pequenas mudanças.** A agregação agora descarta blocos incompletos
+  (no WIN, o bloco das 18h15 de cada pregão, que tem só 2 candles e fica depois da zeragem
+  das 18h00). Em 16 com R$ 1.000, isso mudou o caminho da conta: ela quebra mais devagar
+  (682 operações em vez de 118), mas quebra igual (−98%).
+- **A comparação com o aleatório caiu em todas.** O aleatório corrigido sabe encerrar a
+  posição em vez de virar a mão, e por isso ficou melhor. Com isso o rompimento (16b,
+  18b) deixou de superar 95% do aleatório. Só a faixa de abertura (15b, 17b) ainda supera.
+  **O "sinal real" da rodada 5 encolheu:** vale para a faixa de abertura, não para o
+  rompimento, e continua menor que o custo.
+- A queda máxima em reais não mudou nos testes de 5 min. A medição corrigida da queda
+  dentro do candle só fez diferença nos de 15 min.
