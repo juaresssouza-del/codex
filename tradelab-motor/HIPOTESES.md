@@ -480,3 +480,46 @@ inclinação > 0 e R² ≥ r. A noite **não** reinicia o canal (swing trade).
 contra o aleatório soma as rodadas aleatórias das 20). Critérios de `criterios.toml`. Por
 serem 8 hipóteses, **uma estratégia só vira candidata se passar em pelo menos 2 dos 4 tempos
 gráficos**. Comparação obrigatória: comprar e segurar as mesmas ações no mesmo período.
+
+**Rodada 8 cancelada antes de rodar (11/11/2026),** por decisão do Juares: foco no WIN e no
+WDO até esgotar esses dois mercados, em vez de abrir outro. Nenhum dado de ações foi pedido
+ou usado; as hipóteses 31–38 não existem como teste.
+
+## Rodada 9 — 11/11/2026 — o método de canal do Juares no WIN e no WDO
+
+Registrada antes de implementar e de rodar. Difere da rodada 7 (5 min, canal só dentro do
+dia, saída por "virou lateral", sem alvo) em tudo o que o texto do Juares descreve:
+
+- **Canal desenhado só com o passado, atravessando os dias:** a cada candle, regressão dos N
+  fechamentos anteriores; linha de cima paralela pelo topo mais alto acima da reta, linha de
+  baixo paralela pelo fundo mais baixo. Canal de alta: inclinação > 0 e R² ≥ r; de baixa:
+  inclinação < 0 e R² ≥ r.
+- **WIN ajustado só para desenhar o canal:** nos 27 vencimentos do período há um salto médio
+  de +1,84% na abertura (dia comum: 0,35%), que é a troca de contrato, não movimento. O
+  salto do dia de vencimento é descontado de todos os candles anteriores, só no cálculo do
+  canal; a execução usa o preço real. Como nada passa de um dia para o outro, o resultado em
+  pontos de cada operação não muda. WDO não precisa: no vencimento, salto igual ao de um dia
+  comum (0,32% contra 0,26%).
+- `canal_suporte`: canal de alta, toca a LTA e fecha acima → compra; sai na linha de retorno
+  (alvo) ou se fechar abaixo da LTA. Canal de baixa, toca a LTB e fecha abaixo → vende; sai na
+  linha de retorno de baixo ou se fechar acima da LTB.
+- `canal_aceleracao`: fecha acima da linha de retorno de um canal de alta → compra; alvo =
+  linha de retorno + largura do canal; sai se voltar abaixo da linha média. Simétrico na
+  baixa.
+- Grade: N = 40 ou 80 candles, r = 0,5 ou 0,7 → 4 combinações.
+- **Execução day trade:** 1 contrato, comprado e vendido, stop de emergência 2% (proteção
+  contra salto; a saída normal é a da regra), sem entrada depois das 17h30, zeragem 18h00,
+  custo de robô XP mais 1 tick, treino 12 meses, teste 1, mínimo de 30 operações no treino,
+  11/2021 a 06/2026, WIN com `b3/PAUSAS_CONFERIDAS.toml`, medição com R$ 100 mil.
+- Tempos: 15 min, 30 min, 60 min e 4 h (em 4 h o pregão tem dois candles completos, 9h–13h e
+  13h–17h; o de 17h é incompleto e é descartado).
+
+| | 15 min | 30 min | 60 min | 4 h |
+|---|---|---|---|---|
+| `canal_suporte` WIN / WDO | 39 / 40 | 41 / 42 | 43 / 44 | 45 / 46 |
+| `canal_aceleracao` WIN / WDO | 47 / 48 | 49 / 50 | 51 / 52 | 53 / 54 |
+
+**Regra de aprovação, fixada agora:** são 16 medições; um resultado bom isolado é esperado
+por sorte. Candidato só se a **mesma estratégia, no mesmo tempo gráfico, passar em todos os
+critérios no WIN e no WDO**. Só então vai ao período reservado, que contém as eleições de
+outubro/2026.
