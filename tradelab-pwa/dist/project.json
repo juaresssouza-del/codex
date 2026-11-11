@@ -1,0 +1,23 @@
+{
+  "title": "TradeLab B3",
+  "source_commit": "b1200c4daa4c10d6f4ea8760e896b9019c2e8b41",
+  "source_url": "https://github.com/juaresssouza-del/codex/blob/b1200c4daa4c10d6f4ea8760e896b9019c2e8b41/tradelab-motor/HIPOTESES.md",
+  "source_label": "HIPOTESES.md · rodada 5R",
+  "round": "5R",
+  "engine_version": "0.3.0",
+  "hypotheses": 18,
+  "approved": 0,
+  "period": "11/2022 a 06/2026",
+  "reserve": "2026-07",
+  "note": "Valores arredondados, transcritos do registro da reexecução. Os relatórios completos não estão no Git. Cada linha é uma medição separada; os saldos não devem ser somados.",
+  "runs": [
+    {"id":"15","symbol":"WIN","strategy":"Faixa de abertura","interval":"5m","capital":1000,"contracts":1,"operations":60,"profit_factor":0.82,"net":-860,"costs":282,"drawdown_brl":1313,"random_percentile":23.5,"old_net":-860,"approved":false},
+    {"id":"16","symbol":"WIN","strategy":"Rompimento","interval":"15m","capital":1000,"contracts":1,"operations":682,"profit_factor":0.96,"net":-984,"costs":3205,"drawdown_brl":2264,"random_percentile":0,"old_net":-886,"approved":false},
+    {"id":"17","symbol":"WDO","strategy":"Faixa de abertura","interval":"5m","capital":1000,"contracts":1,"operations":9,"profit_factor":0.48,"net":-840,"costs":130,"drawdown_brl":1166,"random_percentile":3.5,"old_net":-840,"approved":false},
+    {"id":"18","symbol":"WDO","strategy":"Rompimento","interval":"15m","capital":1000,"contracts":1,"operations":19,"profit_factor":0.64,"net":-935,"costs":275,"drawdown_brl":1200,"random_percentile":0,"old_net":-935,"approved":false},
+    {"id":"15b","symbol":"WIN","strategy":"Faixa de abertura","interval":"5m","capital":100000,"contracts":1,"operations":1459,"profit_factor":0.99,"net":-602,"costs":6857,"drawdown_brl":7796,"random_percentile":96.5,"old_net":-602,"approved":false},
+    {"id":"16b","symbol":"WIN","strategy":"Rompimento","interval":"15m","capital":100000,"contracts":1,"operations":956,"profit_factor":0.95,"net":-2015,"costs":4493,"drawdown_brl":3916,"random_percentile":86,"old_net":-2856,"approved":false},
+    {"id":"17b","symbol":"WDO","strategy":"Faixa de abertura","interval":"5m","capital":100000,"contracts":1,"operations":1164,"profit_factor":0.90,"net":-11910,"costs":16855,"drawdown_brl":14306,"random_percentile":96,"old_net":-11910,"approved":false},
+    {"id":"18b","symbol":"WDO","strategy":"Rompimento","interval":"15m","capital":100000,"contracts":1,"operations":687,"profit_factor":0.82,"net":-7938,"costs":9948,"drawdown_brl":9034,"random_percentile":78.5,"old_net":-8247,"approved":false}
+  ]
+}

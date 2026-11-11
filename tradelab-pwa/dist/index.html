@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101416">
+  <meta name="description" content="Seu espaço de pesquisa B3. Resultados, testes e diário do motor TradeLab no computador e no celular.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <title>TradeLab · Pesquisa B3</title>
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a href="#main" class="skip">Ir para o conteúdo</a>
+  <aside class="sidebar">
+    <a class="brand" href="#resumo" aria-label="TradeLab, início"><img src="./icons/icon.svg" width="38" height="38" alt=""><span>trade<span class="brand-light">lab</span><small>RESEARCH TERMINAL</small></span></a>
+    <div class="workspace-label">SEU ESPAÇO DE PESQUISA</div>
+    <nav id="navigation" aria-label="Navegação principal"></nav>
+    <div class="sidebar-bottom"><div class="mode"><span class="status-dot"></span> Modo pesquisa</div><p>Resultados primeiro.<br>Decisões com evidência.</p><button class="profile" id="about-button"><span class="avatar">JS</span><span>Juares<small>Espaço pessoal</small></span><span class="profile-arrow">↗</span></button></div>
+  </aside>
+  <div class="shell">
+    <header class="topbar"><div class="mobile-brand"><img src="./icons/icon.svg" width="30" height="30" alt=""><b>tradelab</b></div><div class="breadcrumb">Workspace <span>/</span> <b>B3</b><span class="market-tag">WIN · WDO</span></div><div class="top-actions"><span id="connection" class="connection"><span class="status-dot"></span><span>Online</span></span><button id="install-button" class="button ghost" aria-label="Instalar TradeLab"></button><button id="import-button" class="button primary"></button></div></header>
+    <main id="main" tabindex="-1"><div class="loading"><span class="loader"></span> Abrindo seu espaço de pesquisa…</div></main>
+    <footer class="footer"><span>TRADELAB <b>1.0</b> <span class="footer-divider">/</span> PESQUISA B3</span><span>Seus arquivos ficam neste navegador.</span></footer>
+  </div>
+  <input id="file-input" type="file" accept=".json,application/json" multiple hidden aria-label="Selecionar relatórios JSON">
+  <dialog id="import-dialog" aria-labelledby="import-title"><div class="dialog-head"><div><p class="eyebrow">SEUS RELATÓRIOS</p><h2 id="import-title">Trazer dados do motor</h2></div><button class="icon-button close-dialog" aria-label="Fechar"></button></div><div class="dialog-body"><div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Selecionar ou soltar relatórios JSON"><div class="upload-symbol" id="upload-symbol"></div><h3>Selecione seus arquivos JSON</h3><p>ou arraste os arquivos até aqui</p><span>Validação · Diário · Conferência de dados</span></div><p class="small muted">Até 25 MB por arquivo. Os dados são guardados neste navegador e não são enviados à corretora. Para ver os mesmos arquivos em outro aparelho, importe-os lá também.</p><div class="instruction"><span class="step">1</span><div><b>Gere os relatórios no computador</b><p>Use <code>validar</code>, <code>diario-b3</code> ou <code>conferir-b3</code> no motor.</p></div></div><div class="instruction"><span class="step">2</span><div><b>Traga os JSONs da pasta resultados/</b><p>O PWA organiza os arquivos e mantém os vereditos informados.</p></div></div><div id="import-status" aria-live="polite"></div></div><div class="dialog-footer"><button class="button ghost close-dialog">Fechar</button><button id="choose-files" class="button primary">Selecionar JSONs</button></div></dialog>
+  <dialog id="about-dialog" aria-labelledby="about-title"><div class="dialog-head"><div><p class="eyebrow">TRADELAB / B3</p><h2 id="about-title">Seu laboratório, no bolso.</h2></div><button class="icon-button close-dialog" aria-label="Fechar"></button></div><div class="dialog-body"><p>O motor Python faz os cálculos no computador. Este painel apresenta os relatórios e o registro da pesquisa.</p><div class="info-block"><b>Instalar no Android</b><p>Abra este endereço no Chrome. Toque em <strong>Instalar</strong> ou no menu do navegador → <strong>Adicionar à tela inicial</strong>. A opção depende do navegador.</p></div><div class="info-block"><b>Arquivos por dispositivo</b><p>Os relatórios importados ficam neste navegador. Exporte uma cópia para transferir a outro aparelho. Limpar os dados do navegador também remove os registros locais.</p></div><div class="info-block"><b>Reserva preservada</b><p>Importações com operações a partir de julho de 2026 são bloqueadas nesta fase. O resumo inicial usa o registro já existente no projeto.</p></div><p class="small muted">O painel não envia ordens. Uma aprovação em teste não autoriza operar uma conta real.</p></div><div class="dialog-footer"><button class="button primary close-dialog">Entendi</button></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="noscript">Ative o JavaScript para abrir os relatórios do TradeLab.</p></noscript>
+</body></html>
