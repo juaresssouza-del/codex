@@ -1,5 +1,6 @@
 """Motor de futuros da B3 (WIN/WDO): pregão diário, contratos, pontos, comprado e vendido."""
 import numpy as np
+from dataclasses import replace
 import pandas as pd
 import pytest
 
@@ -293,3 +294,69 @@ def test_candle_de_forca_segue_e_reverte():
     reverter = ESTRATEGIAS["forca_reversao"].sinais(df, periodo=20, k=2.0)
     assert seguir[i] == 1 and reverter[i] == -1
     assert set(np.unique(seguir)) <= {-1, 0, 1}
+
+
+# --- rodada 9: canal desenhado à mão, atravessando dias -------------------------------------
+
+from motor.estrategias import canal_envelope  # noqa: E402
+
+
+def test_envelope_usa_so_candles_anteriores_e_passa_pelos_extremos():
+    df = pregoes(dias=3, semente=8)
+    sup, inf, med, r2, incl = canal_envelope(df, 40)
+    i = 200
+    j = np.arange(i - 40, i)
+    b, a = np.polyfit(np.arange(40), df.fechamento.to_numpy()[j], 1)
+    linha = a + b * np.arange(40)
+    assert incl[i] == pytest.approx(b)
+    assert sup[i] == pytest.approx(a + b * 40 + (df.maxima.to_numpy()[j] - linha).max())
+    assert inf[i] == pytest.approx(a + b * 40 + (df.minima.to_numpy()[j] - linha).min())
+    futuro = df.copy()
+    futuro.loc[i, ["maxima", "minima", "fechamento"]] = [1e6, 1.0, 5e5]  # mexer no próprio candle
+    s2, i2, *_ = canal_envelope(futuro, 40)
+    assert s2[i] == sup[i] and i2[i] == inf[i]
+
+
+def test_ajuste_de_vencimento_do_win():
+    df = pregoes(dias=3)
+    # o 2º pregão (2026-01-03) vira "vencimento": abre 2.000 pontos acima do fechamento anterior
+    df.loc[113:, ["abertura", "maxima", "minima", "fechamento"]] += 2_000
+    ajustado, saltos = futuros.ajustar_vencimentos(df, [pd.Timestamp("2026-01-03").date()])
+    assert len(saltos) == 1 and saltos[0][1] == pytest.approx(2_000)
+    assert (ajustado.deslocamento[:113] == 2_000).all() and (ajustado.deslocamento[113:] == 0).all()
+    assert ajustado.fechamento.equals(df.fechamento)  # preço de execução intacto
+
+
+def test_saidas_por_lado():
+    df = pregoes(dias=1)
+    # 3 = sair se comprado; 4 = sair se vendido
+    r = executar_futuros(df, sinais(len(df), **{"5": 1, "10": 4, "20": 3}), RISCO, SEM_CUSTO, WIN)
+    op = r.operacoes.iloc[0]
+    assert op.motivo == "sinal" and op.ts_saida == df.ts_abertura[21]
+    r = executar_futuros(df, sinais(len(df), **{"5": -1, "10": 3, "20": 4}), RISCO, SEM_CUSTO, WIN_AMBOS)
+    assert r.operacoes.iloc[0].ts_saida == df.ts_abertura[21]
+
+
+def test_indicador_continuo_nao_reaquece_na_virada_do_dia():
+    df = pregoes(dias=2)
+    s = sinais(len(df), **{"115": 1})  # 3º candle do 2º pregão
+    frio = executar_futuros(df, s, RISCO, SEM_CUSTO, WIN, aquecimento=20)
+    continuo = executar_futuros(df, s, RISCO, SEM_CUSTO, replace(WIN, indicador_continuo=True), aquecimento=20)
+    assert len(frio.operacoes) == 0 and len(continuo.operacoes) == 1
+
+
+def test_canal_suporte_compra_na_lta_em_canal_de_alta():
+    df = pregoes(dias=2)
+    n = len(df)
+    tendencia = 100_000 + 10.0 * np.arange(n)
+    df["fechamento"] = tendencia
+    df["abertura"] = np.r_[tendencia[0], tendencia[:-1]]
+    df["maxima"] = df[["abertura", "fechamento"]].max(axis=1) + 50
+    df["minima"] = df[["abertura", "fechamento"]].min(axis=1) - 50
+    i = 150
+    _, inf, *_ = canal_envelope(df, 40)
+    df.loc[i, "minima"] = inf[i] - 5          # toca a LTA...
+    df.loc[i, "fechamento"] = inf[i] + 30     # ...e fecha acima
+    df.loc[i, "abertura"] = inf[i] + 60
+    s = ESTRATEGIAS["canal_suporte"].sinais(df, n=40, r2=0.5)
+    assert s[i] == 1

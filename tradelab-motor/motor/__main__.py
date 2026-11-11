@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 import json
 import sys
 import tomllib
@@ -50,7 +51,8 @@ def _custos(a):
 
 def _mercado(a):
     if a.contrato:
-        return futuros.com_lado(futuros.CONTRATOS[a.contrato], a.lado)
+        c = futuros.com_lado(futuros.CONTRATOS[a.contrato], a.lado)
+        return replace(c, indicador_continuo=True) if getattr(a, "indicador_continuo", False) else c
     return SEM_FILTROS if a.sem_filtros else Mercado()
 
 
@@ -86,6 +88,13 @@ def _carregar_b3(a):
         removidos = df.attrs.get("blocos_incompletos_removidos", 0)
         if removidos:
             print(f"B3: {removidos} blocos incompletos removidos na agregação; lacunas preservadas.")
+    if getattr(a, "ajustar_vencimento", False):
+        if a.contrato != "WIN":
+            sys.exit("--ajustar-vencimento só se aplica ao WIN (o WDO não tem salto de vencimento no histórico).")
+        attrs = dict(df.attrs)
+        df, saltos = futuros.ajustar_vencimentos(df, futuros.vencimentos_win())
+        df.attrs.update(attrs)
+        print(f"WIN: {len(saltos)} trocas de vencimento descontadas no desenho dos indicadores (preço de execução intacto).")
     if conf is not None:
         df.attrs["conferencia_dados"] = conf
     return df, rel
@@ -295,6 +304,8 @@ def main(argv=None):
         p.add_argument("--contrato", choices=sorted(futuros.CONTRATOS), help="minicontrato da B3 (usa o CSV do MT5)")
         p.add_argument("--arquivo", help="CSV do MT5 (padrão: dados/B3/<CONTRATO>_N_M5.csv)")
         p.add_argument("--pausas-conferidas", help="B3: TOML com as pausas investigadas e documentadas")
+        p.add_argument("--ajustar-vencimento", action="store_true",
+                       help="WIN: desconta o salto da troca de contrato no desenho dos indicadores")
 
     def periodo(p):
         p.add_argument("--de", help="AAAA-MM (opcional)")
@@ -317,6 +328,8 @@ def main(argv=None):
                        help="entra por ordem limitada no fechamento do sinal (sem slippage, pode não executar)")
         g.add_argument("--lado", default="comprado", choices=["comprado", "ambos"], help="B3: só comprado ou também vendido")
         g.add_argument("--custo-lado", type=float, default=None, help="B3: R$ por contrato em cada lado (padrão do contrato)")
+        g.add_argument("--indicador-continuo", action="store_true",
+                       help="B3: indicadores atravessam a noite (canal de vários dias); posição continua zerada todo dia")
         g.add_argument("--martingale", action="store_true",
                        help="B3: dobra os contratos depois de cada perda (até a margem e --max-contratos)")
         g.add_argument("--max-contratos", type=int, default=0, help="B3: teto de contratos por operação (0 = sem teto)")

@@ -39,7 +39,7 @@ def test_grade_e_padrao_sao_validos(nome):
     e = ESTRATEGIAS[nome]
     df = serie(300)
     for params in e.combinacoes():
-        assert set(np.unique(e.sinais(df, **params))) <= {-1, 0, 1, 2}  # 2 = sair (motor da B3)
+        assert set(np.unique(e.sinais(df, **params))) <= {-1, 0, 1, 2, 3, 4}  # 2-4 = saídas (motor da B3)
     assert e.padrao in e.combinacoes()
 
 

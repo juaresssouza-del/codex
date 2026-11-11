@@ -25,6 +25,7 @@ import pandas as pd
 from .backtest import _BRT_MS, _COLS_OPS, _DIA_MS, Resultado, Risco
 
 COMPRAR, VENDER, SAIR = 1, -1, 2
+SAIR_COMPRADO, SAIR_VENDIDO = 3, 4
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ class Contrato:
     zeragem: int = 18 * 60       # a XP troca a garantia 15 min antes do fim; WIN vincendo fecha às 18h
     ultima_entrada: int = 17 * 60 + 30
     lado: str = "comprado"       # "comprado" ou "ambos"
+    indicador_continuo: bool = False  # True: a noite não reinicia o aquecimento (canal de vários dias)
 
     def __post_init__(self):
         for nome in ("valor_ponto", "tick", "margem"):
@@ -128,6 +130,40 @@ def carregar_mt5(caminho: Path) -> tuple[pd.DataFrame, RelatorioB3]:
     return df, RelatorioB3(len(df), int(dia.nunique()), antes - len(df), pausas)
 
 
+def vencimentos_win(inicio: int = 2021, fim: int = 2026) -> list:
+    """Vencimento do WIN (B3): quarta-feira mais próxima do dia 15 dos meses pares."""
+    dias = []
+    for ano in range(inicio, fim + 1):
+        for mes in (2, 4, 6, 8, 10, 12):
+            d15 = pd.Timestamp(ano, mes, 15)
+            quartas = [d15 + pd.Timedelta(days=k) for k in range(-3, 4) if (d15 + pd.Timedelta(days=k)).weekday() == 2]
+            dias.append(min(quartas, key=lambda q: abs((q - d15).days)).date())
+    return dias
+
+
+def ajustar_vencimentos(df: pd.DataFrame, dias) -> tuple[pd.DataFrame, list]:
+    """Coluna `deslocamento` (pontos a somar ao preço) que tira o salto da troca de contrato.
+
+    Em cada dia de vencimento, o salto entre o último fechamento do pregão anterior e a
+    primeira abertura do dia é somado a todos os candles anteriores. Usado só para desenhar
+    indicadores de vários dias: as colunas de preço não mudam. O salto inclui o movimento real
+    da noite, que fica descontado junto (erro pequeno, documentado)."""
+    out = df.copy()
+    dia = pd.to_datetime((out.ts_abertura - _BRT_MS), unit="ms").dt.date.to_numpy()
+    deslocamento = np.zeros(len(out))
+    saltos = []
+    for d in sorted(set(dias)):
+        idx = np.flatnonzero(dia == d)
+        if not len(idx) or idx[0] == 0:
+            continue
+        i = int(idx[0])
+        salto = float(out.abertura.iloc[i] - out.fechamento.iloc[i - 1])
+        deslocamento[:i] += salto
+        saltos.append((d, salto))
+    out["deslocamento"] = deslocamento
+    return out, saltos
+
+
 def reamostrar(df: pd.DataFrame, minutos: int) -> pd.DataFrame:
     """Agrega somente blocos completos desde as 9h00. Lacunas não viram candles fictícios."""
     if isinstance(minutos, bool) or not isinstance(minutos, int) or minutos <= 0:
@@ -172,11 +208,12 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray | Callable[[int, int],
     ts_a = df.ts_abertura.to_numpy(np.int64)
     ts_f = df.ts_fechamento.to_numpy(np.int64)
     passo = int(ts_f[0] - ts_a[0] + 1) if n else 0
+    dia_arr = (ts_a - _BRT_MS) // _DIA_MS
     seq = np.zeros(n, dtype=np.int64)
     for i in range(1, n):
-        seq[i] = seq[i - 1] + 1 if ts_a[i] - ts_a[i - 1] == passo else 0
+        seguido = ts_a[i] - ts_a[i - 1] == passo or (c_.indicador_continuo and dia_arr[i] != dia_arr[i - 1])
+        seq[i] = seq[i - 1] + 1 if seguido else 0
     valido = (seq >= np.maximum(np.asarray(aquecimento) - 1, 0)) & (np.arange(n) >= inicio)
-    dia_arr = (ts_a - _BRT_MS) // _DIA_MS
     ultimo = np.append(dia_arr[1:] != dia_arr[:-1], True).tolist()
     minuto = (((ts_a - _BRT_MS) % _DIA_MS) // 60_000).tolist()
     O, H, L, C = (df[k].to_numpy(float).tolist() for k in ("abertura", "maxima", "minima", "fechamento"))
@@ -291,7 +328,8 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray | Callable[[int, int],
                 pendente = COMPRAR
             elif s == -1 and atual != -1:
                 pendente = VENDER if ambos else (SAIR if atual == 1 else 0)
-            elif s == SAIR and atual != 0:
+            elif (s == SAIR and atual != 0) or (s == SAIR_COMPRADO and atual == 1) or \
+                 (s == SAIR_VENDIDO and atual == -1):
                 pendente = SAIR
 
     return Resultado(

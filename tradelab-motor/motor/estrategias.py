@@ -106,6 +106,69 @@ def canal(c: np.ndarray, n: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np
 
 
 SAIR = 2  # o motor da B3 entende como "encerrar a posição, sem abrir a contrária"
+SAIR_COMPRADO, SAIR_VENDIDO = 3, 4  # encerrar só se estiver nesse lado
+
+
+def canal_envelope(df: pd.DataFrame, n: int):
+    """Canal "desenhado à mão" com os `n` candles ANTERIORES (o candle atual não entra).
+
+    Reta de regressão dos fechamentos; linha de cima paralela pelo topo mais alto acima da
+    reta, linha de baixo paralela pelo fundo mais baixo. Valores projetados para o candle
+    atual. Se houver a coluna `deslocamento` (ajuste da troca de vencimento), o canal é
+    calculado no preço ajustado e devolvido no preço real do candle.
+    Devolve (superior, inferior, média, R², inclinação)."""
+    d = df["deslocamento"].to_numpy(float) if "deslocamento" in df else np.zeros(len(df))
+    c, h, l = (df[k].to_numpy(float) + d for k in ("fechamento", "maxima", "minima"))
+    out = [np.full(len(df), np.nan) for _ in range(5)]
+    if len(df) <= n:
+        return tuple(out)
+    x = np.arange(n, dtype=float)
+    xc = x - x.mean()
+    yc, yh, yl = (sliding_window_view(v, n)[:-1] for v in (c, h, l))  # janelas que terminam em i-1
+    media = yc.mean(axis=1)
+    b = (yc - media[:, None]) @ xc / (xc @ xc)
+    a = media - b * x.mean()
+    linha = a[:, None] + b[:, None] * x[None, :]
+    sse = ((yc - linha) ** 2).sum(axis=1)
+    sst = ((yc - media[:, None]) ** 2).sum(axis=1)
+    proj = a + b * n
+    sup = proj + (yh - linha).max(axis=1)
+    inf = proj + (yl - linha).min(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        r2 = np.where(sst > 0, 1 - sse / sst, 0.0)
+    dd = d[n:]
+    for k, v in enumerate((sup - dd, inf - dd, (sup + inf) / 2 - dd, r2, b)):
+        out[k][n:] = v
+    return tuple(out)
+
+
+def _codificar(compra, venda, sai_comprado, sai_vendido) -> np.ndarray:
+    saida = np.where(sai_comprado & sai_vendido, SAIR,
+                     np.where(sai_comprado, SAIR_COMPRADO, np.where(sai_vendido, SAIR_VENDIDO, 0)))
+    return np.where(compra, 1, np.where(venda, -1, saida)).astype(np.int8)
+
+
+def sinais_canal_suporte(df: pd.DataFrame, n: int, r2: float) -> np.ndarray:
+    """Canal de alta: toca a LTA e fecha acima -> compra; sai na linha de retorno ou abaixo da LTA.
+    Canal de baixa: toca a LTB e fecha abaixo -> vende; sai na linha de retorno ou acima da LTB."""
+    sup, inf, _, r2_, b = canal_envelope(df, n)
+    h, l, c = (df[k].to_numpy(float) for k in ("maxima", "minima", "fechamento"))
+    with np.errstate(invalid="ignore"):
+        alta, baixa = (b > 0) & (r2_ >= r2), (b < 0) & (r2_ >= r2)
+        return _codificar(alta & (l <= inf) & (c > inf), baixa & (h >= sup) & (c < sup),
+                          (h >= sup) | (c < inf), (l <= inf) | (c > sup))
+
+
+def sinais_canal_aceleracao(df: pd.DataFrame, n: int, r2: float) -> np.ndarray:
+    """Rompimento a favor: fecha acima da linha de retorno de um canal de alta -> compra, alvo =
+    retorno + largura, sai se voltar abaixo da média. Simétrico no canal de baixa."""
+    sup, inf, med, r2_, b = canal_envelope(df, n)
+    h, l, c = (df[k].to_numpy(float) for k in ("maxima", "minima", "fechamento"))
+    larg = sup - inf
+    with np.errstate(invalid="ignore"):
+        alta, baixa = (b > 0) & (r2_ >= r2), (b < 0) & (r2_ >= r2)
+        return _codificar(alta & (c > sup), baixa & (c < inf),
+                          (h >= sup + larg) | (c < med), (l <= inf - larg) | (c > med))
 
 
 def _canal_sinais(df: pd.DataFrame, n: int, r2: float, compra: np.ndarray, venda: np.ndarray,
@@ -227,6 +290,18 @@ ESTRATEGIAS = {
         sinais_canal_media,
         padrao={"n": 24, "r2": 0.5},
         grade={"n": [24, 36], "r2": [0.5, 0.7]},
+        aquecimento=lambda p: p["n"] + 1),
+    "canal_suporte": Estrategia(
+        "canal_suporte", "Canal desenhado com o passado: compra na LTA / vende na LTB, alvo na linha de retorno",
+        sinais_canal_suporte,
+        padrao={"n": 40, "r2": 0.5},
+        grade={"n": [40, 80], "r2": [0.5, 0.7]},
+        aquecimento=lambda p: p["n"] + 1),
+    "canal_aceleracao": Estrategia(
+        "canal_aceleracao", "Canal desenhado com o passado: rompimento a favor, alvo = largura projetada",
+        sinais_canal_aceleracao,
+        padrao={"n": 40, "r2": 0.5},
+        grade={"n": [40, 80], "r2": [0.5, 0.7]},
         aquecimento=lambda p: p["n"] + 1),
     "rsi": Estrategia(
         "rsi", "Reversão: compra com RSI baixo, sai quando ele recupera", sinais_rsi,
