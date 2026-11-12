@@ -11,3 +11,8 @@ percentil_aleatorio_min = 95.0 # tem que superar 95% das rodadas com entradas ao
 # Período reservado: nenhum teste de desenvolvimento olha daqui em diante (o motor corta
 # sozinho). Só a estratégia que passar em tudo é rodada nele, uma vez, com --usar-reserva.
 reserva_inicio = "2026-07"
+
+# Fim da janela reservada: o último dia do histórico exportado (10/11/2026). Operações depois
+# disso são dados novos, do acompanhamento ao vivo (simulador), e não fazem parte da reserva.
+# Não muda nenhum critério de aprovação.
+reserva_fim = "2026-11-10"

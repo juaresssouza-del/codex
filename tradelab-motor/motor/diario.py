@@ -17,7 +17,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 
 from . import __version__, futuros
-from .conferencia import BRT, CRITERIOS, inicio_reserva
+from .conferencia import BRT, CRITERIOS, fim_reserva, inicio_reserva
 
 COLUNAS = ["id", "ambiente", "contrato", "lado", "quantidade", "entrada", "saida",
            "preco_entrada_previsto", "preco_saida_previsto", "preco_entrada_executado",
@@ -57,6 +57,8 @@ def analisar(arquivo: Path, *, criterios: Path = CRITERIOS) -> dict:
     Nesta etapa o diário também se restringe às datas anteriores à reserva.
     """
     reserva = inicio_reserva(criterios)
+    fim = fim_reserva(criterios)
+    na_reserva = lambda h: h >= reserva and (fim is None or h < fim)
     registros, vistos = [], set()
     bruto = Path(arquivo).read_bytes()
     with io.StringIO(bruto.decode("utf-8-sig"), newline="") as arq:
@@ -82,7 +84,7 @@ def analisar(arquivo: Path, *, criterios: Path = CRITERIOS) -> dict:
                 if q != q.to_integral_value():
                     raise ValueError("Quantidade de contratos precisa ser inteira.")
                 entrada, saida = _hora(linha["entrada"]), _hora(linha["saida"])
-                if entrada >= reserva or saida >= reserva:
+                if na_reserva(entrada) or na_reserva(saida):
                     raise ValueError("Operação intercepta o período reservado; importação bloqueada.")
                 if saida < entrada or saida.date() != entrada.date():
                     raise ValueError("Saída precisa ocorrer após a entrada e no mesmo pregão.")

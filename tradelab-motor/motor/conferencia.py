@@ -9,7 +9,7 @@ import hashlib
 import io
 import tomllib
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -21,6 +21,14 @@ from . import __version__, futuros
 BRT = ZoneInfo("America/Sao_Paulo")
 PASSO_MS = 300_000
 CRITERIOS = Path(__file__).resolve().parent.parent / "criterios.toml"
+
+
+def fim_reserva(criterios: Path = CRITERIOS) -> datetime | None:
+    """Fim (exclusivo) da janela reservada; depois dela, só dados ao vivo. None = sem fim."""
+    dia = tomllib.loads(Path(criterios).read_text(encoding="utf-8")).get("reserva_fim")
+    if not dia:
+        return None
+    return datetime.strptime(dia, "%Y-%m-%d").replace(tzinfo=BRT) + timedelta(days=1)
 
 
 def inicio_reserva(criterios: Path = CRITERIOS) -> datetime:

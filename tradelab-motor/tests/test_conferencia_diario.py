@@ -217,3 +217,17 @@ def test_pausa_conferida_precisa_bater_e_ter_causa(tmp_path, entrada):
     else:
         _, _, m = conferir(mt5(tmp_path, PAUSA), pausas_conferidas=toml_pausas(tmp_path, entrada))
         assert not m["liberado_para_teste_dos_dados"]
+
+
+# --- diário prospectivo: depois da janela reservada, as operações ao vivo são aceitas -------
+
+def test_diario_aceita_operacao_ao_vivo_depois_da_janela_reservada(tmp_path):
+    ao_vivo = operacao(id="ROBO-1", entrada="2026-11-16 10:15:00", saida="2026-11-16 11:45:00")
+    relatorio = diario.analisar(csv_diario(tmp_path, [ao_vivo]))
+    assert relatorio["operacoes"][0]["id"] == "ROBO-1"
+
+
+def test_diario_continua_bloqueando_a_janela_reservada(tmp_path):
+    dentro = operacao(id="R-1", entrada="2026-10-26 10:00:00", saida="2026-10-26 11:00:00")
+    with pytest.raises(ValueError, match="reservado"):
+        diario.analisar(csv_diario(tmp_path, [dentro]))
