@@ -1,95 +1,93 @@
-# TradeLab — relatório de passagem (Claude → Codex), 11/11/2026
+# TradeLab — relatório de passagem (Claude → Codex), 12/11/2026
 
-Leia este arquivo primeiro. Ele resume o que foi feito no `tradelab-motor/`, o que foi
-concluído e o que **não** fazer. Os detalhes estão nos arquivos citados.
+Leia este arquivo primeiro. Ele substitui as versões anteriores (histórico no Git). Resume o
+estado do `tradelab-motor/`, o que foi concluído, o que **não** fazer e as ações
+recomendadas. Os detalhes estão nos arquivos citados; `HIPOTESES.md` é a fonte da verdade.
 
-**Entrega posterior — 0.4.0 (11/11/2026):** seletor adaptativo de pesquisa em
-`motor/adaptativo.py`, comando `adaptativo-b3`, para 5/15/30 minutos. Hipóteses 55–57
-registradas no commit `c381e37` antes da implementação e de qualquer teste de mercado.
-Seis especialistas, contexto calculado com o passado, memória de simulações encerradas,
-opção de ficar de fora, registro de decisões e diagnóstico diário retrospectivo separado.
-184 testes passaram e 4 foram pulados; os 27 casos novos usam somente dados artificiais.
-Nenhum novo backtest real, nenhuma hipótese aprovada, reserva e critérios preservados.
-O relato antigo de 18 hipóteses abaixo é histórico; consultar `HIPOTESES.md` e
-[b3/MOTOR_ADAPTATIVO.md](b3/MOTOR_ADAPTATIVO.md) para o estado atual e a continuação.
+## 1. Situação em uma frase
 
-**Complemento posterior — motor 0.2.0:** leia também [AUDITORIA_CODEX.md](AUDITORIA_CODEX.md).
-Foram corrigidos erros de execução e validação. Os números abaixo são registros da
-versão anterior e não foram recalculados; não constituem resultado validado da versão
-auditada. A auditoria não aprovou estratégias nem utilizou a reserva em execuções.
+**57 hipóteses testadas no histórico (Binance e B3), nenhuma aprovada.** O motor é confiável
+(184 testes, auditado pelo Codex); o que falta é uma estratégia com vantagem maior que o custo
+e capital compatível com o risco. Conta real **não** autorizada. Período reservado (07/2026
+em diante, com as eleições de outubro) **intocado**.
 
-**Entrega prática posterior — 0.3.0:** `conferir-b3` verifica o CSV M5 com procedência,
-hash e bloqueio de falhas antes de testes B3 no fluxo de desenvolvimento. `diario-b3`
-gera fichas e comparações previsto × executado de operações encerradas no simulador,
-em JSON/HTML. Os comandos novos não liberam a reserva e não conectam corretora. Veja
-[b3/COLOCAR_EM_PRATICA.md](b3/COLOCAR_EM_PRATICA.md). São 128 testes passando e 4 pulados,
-com dados artificiais nos casos novos. Os números históricos seguem sem recálculo.
-
-## 1. Onde está cada coisa
+## 2. Onde está cada coisa
 
 | Arquivo | Conteúdo |
 |---|---|
-| `STATUS.md` | Situação geral e próximos passos |
-| `HIPOTESES.md` | As 18 hipóteses, registradas **antes** de rodar, com os resultados |
-| `criterios.toml` | A régua de aprovação e o período reservado (de 07/2026 em diante) |
-| `README.md` | Como instalar, rodar e validar (Binance e B3) |
-| `b3/DADOS.md` | Qualidade do histórico WIN/WDO e custo contra movimento |
-| `b3/corretoras.md` | Pesquisa do Codex (custos, margens, horários, tarifas B3) |
-| `b3/VERIFICACAO_PESQUISA.md` | Conferência das pesquisas do Gemini |
-| `motor/` | Código: `backtest.py` (cripto), `futuros.py` (B3), `validacao.py`, `estrategias.py` |
-| `tests/` | 128 casos passam e 4 são pulados (`python -m pytest`) |
+| `HIPOTESES.md` | As 57 hipóteses, registradas antes de rodar, com resultados e leituras |
+| `STATUS.md` | Situação por etapa |
+| `criterios.toml` | A régua (≥ 200 operações, fator de lucro ≥ 1,3, expectativa > 0, queda ≤ 10%, ≥ 95% contra o aleatório) e a reserva |
+| `AUDITORIA_CODEX.md` | Correções do Codex no motor (revisadas pelo Claude) |
+| `b3/DADOS.md` | Qualidade do histórico WIN/WDO, custo contra movimento, salto de vencimento do WIN |
+| `b3/PAUSAS_CONFERIDAS.toml` | Duas pausas do WIN investigadas (uma é falha confirmada da B3) |
+| `b3/corretoras.md` | Pesquisa do Codex: custos, margens, horários e tarifas B3 |
+| `b3/CARTAO_FORCA_WDO.md` | Regra do candle de força no WDO para o simulador |
+| `b3/mt5/ForcaWDO.mq5` | Indicador de alerta do MT5 para esse cartão (só avisa; não compilado aqui) |
+| `b3/mt5/ExportarAcoes.mq5` | Exportador de ações (a rodada de ações foi cancelada; não usado) |
+| `b3/MOTOR_ADAPTATIVO.md` | Seletor adaptativo do Codex (rodada 10) |
+| `motor/` | `futuros.py` (B3), `backtest.py` (cripto), `estrategias.py`, `validacao.py`, `adaptativo.py`, `conferencia.py`, `diario.py` |
 
-Fora do Git (não estão no repositório): `dados/` (Binance e os CSVs do MT5 exportados pelo
-Juares) e `resultados/` (relatórios JSON completos de cada validação). Para refazer, baixe
-os dados com `python -m motor baixar ...` e peça ao Juares os CSVs de `WIN$N` e `WDO$N` (M5).
+Fora do Git: `dados/` (Binance e os CSVs M5 de `WIN$N`/`WDO$N` do MT5 da XP, 11/2021–11/2026)
+e `resultados/`. Os CSVs da B3 só o Juares tem; peça a ele.
 
-## 2. O que o motor faz
+## 3. Resultados por rodada (fora da amostra, depois dos custos, 1 contrato na B3)
 
-- Backtest próprio em Python; reproduz o simulador do TradeLab (PWA) até a 6ª casa decimal.
-- Walk-forward (parâmetros escolhidos só com o passado), comparação com 200 rodadas de
-  entradas aleatórias e com comprar e segurar, critérios fixos e período reservado que
-  nenhum teste vê.
-- Binance Spot: custos, filtros da corretora, ordem limitada, candles parciais.
-- B3 (WIN/WDO): pontos × valor do ponto, contratos inteiros, custo por contrato e por lado,
-  comprado e vendido, zeragem às 18h00, nada passa de um pregão para o outro.
-
-## 3. Resultados (fora da amostra, depois dos custos)
-
-| Rodada | Mercado | Hipóteses | Resultado |
+| Rodada | O que testou | Hip. | Resultado |
 |---|---|---:|---|
-| 1–2 | BTC 5m/15m/1h/4h (SMA, rompimento, RSI) | 12 | Reprovadas. Day trade perde para o custo (~0,3% por operação na Binance) |
-| 3–4 | BTC/ETH 4h, seguir tendência sem alvo | 3 | Positivas em BTC, reprovadas no conjunto (ETH não supera o aleatório). Comprar e segurar rendeu mais |
-| 5 | B3 WIN/WDO, faixa de abertura e rompimento, comprado e vendido | 4 | **Sinal real antes dos custos** (+R$ 1,7 mil a +R$ 6,3 mil por contrato em 43 meses, supera 98–100% do aleatório), mas o custo de robô na XP é maior. Reprovadas |
+| 1–2 | BTC 5m–4h: SMA, rompimento, RSI | 12 | Day trade perde para o custo (~0,3% por operação) |
+| 3–4 | BTC/ETH 4h seguindo tendência | 3 | Positivo em BTC, falha em ETH; comprar e segurar rendeu mais |
+| 5 / 5R | WIN/WDO: faixa de abertura, rompimento | 4 (+8 medições) | Sinal antes dos custos, menor que o custo de robô na XP; R$ 1.000 quebra |
+| 6 | Média móvel, candle de força a favor/contra, martingale | 7 | Martingale quebra R$ 1.000 em 3 operações; força a favor no WDO: fator 1,31 mas 166 ops e falha no WIN |
+| 7 | Canal 5 min dentro do dia, sai no lateral | 4 | Filtro de canal piora o rompimento |
+| 8 | Ações (swing) | — | Cancelada antes de rodar: foco em WIN/WDO |
+| 9 | Canal do Juares desenhado com o passado, 15m–4h | 16 | Suporte (LTA/LTB) sem vantagem; **aceleração 15 min positiva nos dois mercados** (fator 1,17 WIN, 1,10 WDO), abaixo da régua; 30m–4h sem operações suficientes |
+| 10 | Seletor adaptativo (Codex), 5/15/30 min | 3 (6 medições) | Reprovado nos 6; abaixo das melhores estratégias fixas; não há persistência de desempenho |
 
-**Nenhuma das 18 hipóteses foi aprovada.** O período reservado (07/2026 em diante) continua
-intocado.
+**Padrão que se repete (rodadas 6, 9 e 10):** só entradas **a favor de um movimento forte**
+(candle de força e aceleração do canal) aparecem com fator ≥ 1 em mais de um mercado ou
+rodada. Nenhuma passa na régua. Com 57 hipóteses no mesmo histórico, isso é **pista, não
+evidência**.
 
-Capital: com R$ 1.000 e 1 minicontrato, a conta quebra (−84% a −94%). A pior queda de 1
-contrato vai de R$ 4,7 mil a R$ 14,3 mil; para caber em 10% seriam R$ 47 mil a R$ 143 mil.
+Capital: com R$ 1.000 e 1 minicontrato, a conta quebra em todas as rodadas. A pior queda de 1
+contrato vai de ~R$ 1 mil a ~R$ 17 mil conforme a estratégia; para caber em 10%, de R$ 26 mil
+a R$ 170 mil.
 
 ## 4. Decisões e regras que valem
 
 - **Nenhuma ordem real** sem autorização escrita do Juares, com orçamento de risco e botão de
-  desligar. Conta real **não** está autorizada.
-- Senhas e chaves (Binance, XP, MT5) nunca no chat nem no Git.
-- **A régua não muda depois de ver o resultado.** Hipótese nova é registrada em
-  `HIPOTESES.md` antes de rodar.
-- Corretora da B3: **XP** (MT5 e simulador grátis). A corretagem zero (RLP) da XP **exclui
-  robôs**; o motor usa R$ 1,35 (WIN) e R$ 2,24 (WDO) por contrato e por lado.
-- Futuros (operar vendido) não está disponível na conta Binance do Juares; não contornar.
+  desligar.
+- Senhas e chaves nunca no chat nem no Git.
+- **A régua não muda depois de ver resultado.** Hipótese nova: registrar em `HIPOTESES.md`
+  antes de implementar e de rodar. Reexecução técnica também é registrada antes.
+- Corretora: **XP**. A corretagem zero (RLP) **exclui robôs**; motor usa R$ 1,35 (WIN) e
+  R$ 2,24 (WDO) por contrato e por lado, mais 1 tick. Custo da rota EA ainda **não confirmado**.
+- Foco: **WIN e WDO** (decisão do Juares). Não abrir outros mercados.
+- O WIN precisa de `--pausas-conferidas b3/PAUSAS_CONFERIDAS.toml`; indicadores de vários
+  dias no WIN precisam de `--ajustar-vencimento`.
+- Ambiente do Claude usa pandas 3 (o do Codex, pandas 2): use `as_unit("ms")` ao converter
+  datas em testes.
 
 ## 5. O que não fazer
 
-- Não rodar estratégia nova sem registrar antes em `HIPOTESES.md`.
-- Não usar o período reservado (`--usar-reserva`) para ajustar nada.
-- Não afrouxar `criterios.toml`.
-- Não tratar resultado antes dos custos como lucro.
-- Não sugerir dinheiro real com R$ 1.000 em minicontratos.
+- Não testar estratégia nova neste histórico de 5 anos sem razão forte: cada teste a mais
+  aumenta a chance de um falso positivo.
+- Não usar `--usar-reserva` para nada além da confirmação final de uma candidata aprovada.
+- Não afrouxar `criterios.toml`, nem escolher o mercado ou o tempo gráfico que deu certo.
+- Não tratar controle fixo ou diagnóstico como candidata.
+- Não usar IA para ler notícia em backtest: o modelo já sabe o que aconteceu (contaminação).
+- Não sugerir dinheiro real com R$ 1.000 em minicontratos, nem martingale.
 
-## 6. Próximos passos possíveis (decisão do Juares)
+## 6. Ações recomendadas (em ordem)
 
-1. Robô da faixa de abertura do WIN no **simulador** do MT5 (sem dinheiro), para acompanhar
-   ao vivo e comparar com o backtest.
-2. Acompanhamento em papel na Binance com R$ 200 por operação.
-3. Voltar ao robô só com fato novo: corretora que confirme **por escrito** custo bem menor
-   para robô, e capital compatível com a queda de 1 contrato.
+| # | Ação | Quem | Por quê |
+|---:|---|---|---|
+| 1 | **Parar de criar estratégias novas no histórico de 5 anos.** | Todos | 57 hipóteses: novos testes aqui medem mais sorte que vantagem |
+| 2 | **Acompanhamento ao vivo no simulador da XP** das duas entradas a favor do movimento: candle de força no WDO (cartão e alerta prontos) e aceleração do canal em 15 min no WIN e no WDO (cartão e alerta a fazer, com a regra exata da rodada 9) | Claude faz o cartão e o alerta; Juares opera no simulador | É o único dado que nenhum teste viu |
+| 3 | **Diário automático do simulador**: o MT5 grava cada operação simulada em CSV no formato de `b3/diario-modelo.csv`, e `diario-b3` compara previsto × executado toda semana | Codex | Hoje o diário é manual; sem ele não há comparação confiável |
+| 4 | **Confirmar por escrito com a XP** o custo da rota de robô (EA no MT5) e se o RLP vale para ordens manuais | Juares | O custo decide se a faixa de abertura e a aceleração viram positivas |
+| 5 | **Calendário oficial para a hipótese 26** (FOMC, payroll, IPCA, Copom, 11/2021–06/2026), com fonte por data | Codex (coleta), Claude (executa) | Hipótese registrada, aguarda só os dados; não rodar com datas estimadas |
+| 6 | **Depois de 3 a 6 meses de simulador**: comparar o ao vivo com o teste. Se confirmar, uma única execução no período reservado (`--usar-reserva`), com as eleições de outubro/2026 como teste de estresse | Claude | Só então discutir conta real, com capital compatível (~R$ 26 mil por contrato ou mais) |
+
+Critério de parada combinado: se o simulador contradisser o teste (resultado negativo depois
+dos custos em 3 a 6 meses), encerrar a busca por robô de day trade em WIN/WDO.
