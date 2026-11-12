@@ -636,3 +636,43 @@ Leitura:
   1,16 e 1,73; WDO 15 min aceleração: 1,12, repetindo a rodada 9). Sem nova hipótese
   registrada, isso não vira teste.
 - 57 hipóteses no projeto; nenhuma aprovada. Reserva intocada.
+
+## Rodada 11 — 12/11/2026 — entradas a favor do movimento, usando o que se repete
+
+Registrada antes de implementar e de rodar. Base medida no próprio histórico (só estatística
+descritiva, 11/2021–06/2026), em WIN e WDO, 5/15/60 min:
+- **A direção não se repete:** o candle seguinte vai para o mesmo lado em 48,7%–49,9% das
+  vezes; correlação da direção com o candle anterior entre −0,014 e +0,007.
+- **O tamanho do movimento se repete:** correlação de +0,22 a +0,26 entre o tamanho de um
+  candle e o do seguinte.
+- **O horário se repete:** o candle de 5 min do WIN às 10h (0,196%) é mais que o dobro do das
+  17h (0,081%); no WDO, 9h (0,152%) contra 17h (0,058%).
+
+Hipótese: as duas únicas entradas que apareceram positivas em mais de uma rodada (candle de
+força e aceleração do canal) melhoram se (1) o stop e o alvo acompanharem a volatilidade do
+momento, em vez de 0,5% fixo, e (2) só houver entrada na janela de maior movimento, quando o
+custo pesa menos em relação ao movimento.
+
+Regras novas, valores fixos (sem grade):
+- **Volatilidade (ATR):** média da amplitude (máxima − mínima) dos 20 candles até o candle do
+  sinal, inclusive. **Stop a 1,5 × ATR** e **alvo a 3 × ATR** do preço de entrada. Sem ATR
+  calculável, não entra.
+- **Janela de entrada:** só entradas cuja abertura de execução seja **antes das 12h00**
+  (9h–12h). Zeragem às 18h00 continua.
+- Indicadores atravessam a noite (`--indicador-continuo`), para haver sinal desde a abertura;
+  WIN com `--ajustar-vencimento` e `b3/PAUSAS_CONFERIDAS.toml`.
+- As saídas próprias de cada estratégia continuam valendo (sinal contrário; na aceleração,
+  alvo na largura projetada ou volta abaixo da média).
+
+| # | Estratégia (grade original) | Tempo | Origem da pista |
+|---|---|---|---|
+| 58 | `forca` (N 10/20 × k 1,5/2/3) | 5 min | rodada 6 (22b, WDO fator 1,31) |
+| 59 | `canal_aceleracao` (N 40/80 × R² 0,5/0,7) | 15 min | rodada 9 (fator 1,17 WIN e 1,10 WDO) |
+
+Comum: comprado e vendido, 1 contrato, custo de robô XP mais 1 tick, treino 12 meses, teste 1,
+mínimo de 30 operações no treino, medição com R$ 100 mil, 11/2021 a 06/2026.
+
+**Regra de aprovação:** a mesma estratégia passa em todos os critérios de `criterios.toml` no
+**WIN e no WDO**. Aviso registrado antes: as duas estratégias e os tempos foram escolhidos
+**porque** deram pista neste mesmo histórico. Mesmo aprovada, a hipótese só vale depois de
+confirmada no simulador ao vivo e, por fim, no período reservado.
