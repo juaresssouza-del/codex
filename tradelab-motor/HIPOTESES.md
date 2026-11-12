@@ -676,3 +676,24 @@ mínimo de 30 operações no treino, medição com R$ 100 mil, 11/2021 a 06/2026
 **WIN e no WDO**. Aviso registrado antes: as duas estratégias e os tempos foram escolhidos
 **porque** deram pista neste mesmo histórico. Mesmo aprovada, a hipótese só vale depois de
 confirmada no simulador ao vivo e, por fim, no período reservado.
+
+Resultados da rodada 11 (1 contrato, R$ 100 mil; 11/2022 a 06/2026):
+
+| # | Mercado | Ops | Acerto | Fator de lucro | Antes dos custos (R$) | Custos (R$) | Líquido (R$) | Pior queda (R$) | Supera o aleatório | Veredito |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 58 força 5 min | WIN | 904 | 34,4% | 0,89 | −454 | 3.964 | −4.418 | 5.432 | 0,0% | Reprovada |
+| | WDO | 489 | 27,8% | 0,62 | −4.470 | 6.411 | −10.881 | 11.479 | 0,0% | Reprovada |
+| 59 aceleração 15 min | WIN | 24 | 37,5% | 0,91 | −36 | 107 | −143 | 806 | 35,5% | Reprovada |
+| | WDO | 85 | 43,5% | **1,29** | +2.730 | 1.096 | **+1.634** | 958 | **100%** | Reprovada (85 ops; fator 1,29 < 1,30) |
+
+Leitura:
+- **Stop e alvo pela volatilidade pioraram o candle de força:** 352 das 489 saídas no WDO
+  foram no stop. Um stop de 1,5 × a amplitude média fica dentro do ruído normal; o preço bate
+  nele e depois segue. A força passou a perder até antes dos custos e ficou abaixo de todas as
+  rodadas aleatórias. A volatilidade se repete, mas usá-la assim no stop não ajuda.
+- **A janela 9h–12h cortou demais as operações:** a aceleração no WIN caiu para 24 operações.
+- **A aceleração no WDO melhorou** (fator de 1,10 na rodada 9 para 1,29; queda de 0,94%), mas
+  com 85 operações e sem o WIN junto não passa. As rodadas 9, 10 e 11 usam o **mesmo**
+  histórico do WDO: repetir positivo em variações da mesma amostra não é confirmação
+  independente.
+- 59 hipóteses no projeto; nenhuma aprovada. Reserva intocada.

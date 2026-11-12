@@ -88,6 +88,12 @@ Conclusões:
   menos que as piores estratégias fixas, mas fica abaixo das melhores. Não há persistência
   de desempenho para a memória aproveitar.
 
+### 10. Rodada 11 (12/11/2026): stop/alvo por volatilidade e janela 9h-12h
+- Base medida: no WIN/WDO a direção não se repete (~49%), o tamanho do movimento e o horário
+  se repetem. Hipótese: usar isso nas entradas a favor do movimento.
+- Reprovada. O stop por volatilidade piorou o candle de força (stop no ruído). A aceleração no
+  WDO subiu para fator 1,29 com 85 operações; no WIN, só 24 operações. Sem candidata.
+
 ## Próximos passos
 
 **Atualização de auditoria (Codex, motor 0.2.0):** foram corrigidos erros reproduzíveis
