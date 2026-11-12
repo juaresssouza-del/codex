@@ -280,7 +280,7 @@ def comprar_e_segurar(df: pd.DataFrame, risco: Risco = Risco(), custos: Custos |
         dia = (df.ts_abertura.to_numpy(np.int64) - 3 * 3_600_000) // 86_400_000
         primeiro = np.append(True, dia[1:] != dia[:-1])
         s[primeiro & (np.arange(len(df)) >= inicio)] = 1
-        return executar_futuros(df, s, Risco(**{**risco.__dict__, "alvo": None}), custos, mercado, inicio=inicio)
+        return executar_futuros(df, s, Risco(**{**risco.__dict__, "alvo": None, "alvo_atr": None}), custos, mercado, inicio=inicio)
     sem_stop = Risco(**{**risco.__dict__, "stop": None, "alvo": None})
     s[inicio] = 1
     return executar(df, s, sem_stop, custos, mercado, inicio=inicio)

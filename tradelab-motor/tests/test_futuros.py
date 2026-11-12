@@ -360,3 +360,46 @@ def test_canal_suporte_compra_na_lta_em_canal_de_alta():
     df.loc[i, "abertura"] = inf[i] + 60
     s = ESTRATEGIAS["canal_suporte"].sinais(df, n=40, r2=0.5)
     assert s[i] == 1
+
+
+# --- rodada 11: stop e alvo por volatilidade (ATR) e janela de entrada ----------------------
+
+def test_stop_e_alvo_por_atr():
+    df = pregoes(dias=1)
+    df["maxima"] = df.abertura + 50.0   # amplitude de 100 pontos em todo candle -> ATR = 100
+    df["minima"] = df.abertura - 50.0
+    risco = Risco(capital=100_000, risco_por_trade=1.0, exposicao_max=1.0, stop=None, alvo=None,
+                  max_contratos=1, stop_atr=1.5, alvo_atr=3.0)
+    df.loc[30, "maxima"] = 100_400.0    # alvo = 100.000 + 3 x 100 = 100.300
+    r = executar_futuros(df, sinais(len(df), **{"25": 1}), risco, SEM_CUSTO, WIN)
+    op = r.operacoes.iloc[0]
+    assert op.motivo == "alvo" and op.preco_saida == 100_300
+    df2 = pregoes(dias=1)
+    df2["maxima"] = df2.abertura + 50.0
+    df2["minima"] = df2.abertura - 50.0
+    df2.loc[30, "minima"] = 99_800.0     # stop = 100.000 - 1,5 x 100 = 99.850
+    r = executar_futuros(df2, sinais(len(df2), **{"25": 1}), risco, SEM_CUSTO, WIN)
+    assert r.operacoes.iloc[0].motivo == "stop" and r.operacoes.iloc[0].preco_saida == 99_850
+
+
+def test_sem_atr_calculavel_nao_entra():
+    df = pregoes(dias=1)
+    risco = Risco(capital=100_000, risco_por_trade=1.0, exposicao_max=1.0, stop=None, alvo=None,
+                  max_contratos=1, stop_atr=1.5, alvo_atr=3.0)
+    r = executar_futuros(df, sinais(len(df), **{"5": 1}), risco, SEM_CUSTO, WIN)  # só 6 candles de histórico
+    assert len(r.operacoes) == 0 and r.rejeitadas_filtro == 1
+
+
+def test_stop_percentual_e_atr_nao_se_misturam():
+    with pytest.raises(ValueError):
+        Risco(stop=0.005, stop_atr=1.5)
+
+
+def test_janela_de_entrada_ate_12h():
+    df = pregoes(dias=1)
+    janela = replace(WIN, ultima_entrada=12 * 60)
+    minuto = ((df.ts_abertura - BRT) % 86_400_000) // 60_000
+    i_11h55 = int(np.flatnonzero(minuto == 11 * 60 + 55)[0])
+    sem_alvo = Risco(capital=100_000, risco_por_trade=1.0, exposicao_max=1.0, stop=None, alvo=None, max_contratos=1)
+    assert len(executar_futuros(df, sinais(len(df), **{str(i_11h55 - 1): 1}), sem_alvo, SEM_CUSTO, janela).operacoes) == 1
+    assert len(executar_futuros(df, sinais(len(df), **{str(i_11h55): 1}), sem_alvo, SEM_CUSTO, janela).operacoes) == 0

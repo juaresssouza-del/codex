@@ -36,8 +36,19 @@ class Risco:
     max_operacoes_dia: int | None = None
     max_contratos: int | None = None  # B3: teto de contratos por operação
     martingale: bool = False          # B3: dobra os contratos depois de cada perda, volta a 1 depois de um ganho
+    stop_atr: float | None = None     # B3: stop a k x ATR (amplitude média) em vez de % fixo
+    alvo_atr: float | None = None     # B3: alvo a k x ATR
+    atr_periodo: int = 20             # candles na média da amplitude, até o candle do sinal
 
     def __post_init__(self):
+        for nome in ("stop_atr", "alvo_atr"):
+            v = getattr(self, nome)
+            if v is not None and (not math.isfinite(v) or v <= 0):
+                raise ValueError(f"{nome} precisa ser positivo.")
+        if (self.stop is not None and self.stop_atr is not None) or (self.alvo is not None and self.alvo_atr is not None):
+            raise ValueError("Use stop/alvo em % ou em ATR, não os dois.")
+        if isinstance(self.atr_periodo, bool) or not isinstance(self.atr_periodo, (int, np.integer)) or self.atr_periodo < 2:
+            raise ValueError("atr_periodo precisa ser um inteiro >= 2.")
         if not math.isfinite(self.capital) or not 0 < self.capital:
             raise ValueError("Capital precisa ser positivo.")
         if not 0 < self.exposicao_max <= 1 or not 0 < self.risco_por_trade <= 1:

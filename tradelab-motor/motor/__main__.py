@@ -39,7 +39,8 @@ def _risco(a) -> Risco:
     return Risco(capital=a.capital, risco_por_trade=a.risco / 100, exposicao_max=a.exposicao / 100,
                  stop=a.stop / 100 or None, alvo=a.alvo / 100 or None,
                  perda_diaria_max=a.perda_diaria / 100 or None, max_operacoes_dia=a.max_operacoes_dia or None,
-                 max_contratos=a.max_contratos or None, martingale=a.martingale)
+                 max_contratos=a.max_contratos or None, martingale=a.martingale,
+                 stop_atr=a.stop_atr or None, alvo_atr=a.alvo_atr or None)
 
 
 def _custos(a):
@@ -52,7 +53,12 @@ def _custos(a):
 def _mercado(a):
     if a.contrato:
         c = futuros.com_lado(futuros.CONTRATOS[a.contrato], a.lado)
-        return replace(c, indicador_continuo=True) if getattr(a, "indicador_continuo", False) else c
+        if getattr(a, "indicador_continuo", False):
+            c = replace(c, indicador_continuo=True)
+        if getattr(a, "ultima_entrada", None):
+            h, mi = (int(x) for x in a.ultima_entrada.split(":"))
+            c = replace(c, ultima_entrada=h * 60 + mi)
+        return c
     return SEM_FILTROS if a.sem_filtros else Mercado()
 
 
@@ -330,6 +336,9 @@ def main(argv=None):
         g.add_argument("--custo-lado", type=float, default=None, help="B3: R$ por contrato em cada lado (padrão do contrato)")
         g.add_argument("--indicador-continuo", action="store_true",
                        help="B3: indicadores atravessam a noite (canal de vários dias); posição continua zerada todo dia")
+        g.add_argument("--stop-atr", type=float, default=0, help="B3: stop a k x ATR(20) (use com --stop 0)")
+        g.add_argument("--alvo-atr", type=float, default=0, help="B3: alvo a k x ATR(20) (use com --alvo 0)")
+        g.add_argument("--ultima-entrada", help="B3: HH:MM, sem entrada a partir desse horário (padrão 17:30)")
         g.add_argument("--martingale", action="store_true",
                        help="B3: dobra os contratos depois de cada perda (até a margem e --max-contratos)")
         g.add_argument("--max-contratos", type=int, default=0, help="B3: teto de contratos por operação (0 = sem teto)")

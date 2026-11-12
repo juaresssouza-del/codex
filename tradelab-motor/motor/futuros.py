@@ -220,6 +220,9 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray | Callable[[int, int],
     S, V, Q, dia = None if sinal_dinamico else np.asarray(sinais).tolist(), valido.tolist(), seq.tolist(), dia_arr.tolist()
 
     vp, cl = c_.valor_ponto, custos.custo_lado
+    usa_atr = risco.stop_atr is not None or risco.alvo_atr is not None
+    ATR = (pd.Series(np.asarray(H) - np.asarray(L)).rolling(risco.atr_periodo).mean().tolist()
+           if usa_atr else None)  # média da amplitude até o candle, inclusive
     slip = custos.slippage_ticks * c_.tick
     ambos = c_.lado == "ambos"
     saldo = float(risco.capital)
@@ -253,6 +256,15 @@ def executar_futuros(df: pd.DataFrame, sinais: np.ndarray | Callable[[int, int],
         entrada = o + lado * slip
         stop = c_.arredonda(entrada * (1 - lado * risco.stop)) if risco.stop else None
         alvo = c_.arredonda(entrada * (1 + lado * risco.alvo)) if risco.alvo else None
+        if usa_atr:
+            atr = ATR[i - 1] if i >= 1 else float("nan")  # conhecida no fechamento do candle do sinal
+            if not math.isfinite(atr) or atr <= 0:
+                rejeitadas += 1
+                return
+            if risco.stop_atr is not None:
+                stop = c_.arredonda(entrada - lado * risco.stop_atr * atr)
+            if risco.alvo_atr is not None:
+                alvo = c_.arredonda(entrada + lado * risco.alvo_atr * atr)
         if (stop is not None and lado * (entrada - stop) <= 0) or \
            (alvo is not None and lado * (alvo - entrada) <= 0):
             rejeitadas += 1
