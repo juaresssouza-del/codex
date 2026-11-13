@@ -7,7 +7,7 @@
 //| Grava cada operação encerrada no formato do diario-b3.           |
 //+------------------------------------------------------------------+
 #property copyright   "TradeLab"
-#property version     "1.00"
+#property version     "1.01"
 #property description "Robô de SIMULADOR para o WDO. Recusa conta real."
 #property description "Regras das hipóteses testadas, congeladas no código."
 
@@ -45,11 +45,14 @@ datetime        ultimoCandle = 0;
 
 // Posição aberta pelo robô
 bool     aberta = false;
+bool     bloqueado = false; // Estado incerto: exige conferir e reiniciar o EA.
 int      ladoAberto = 0;
 long     idPosicao = 0;
 datetime horaEntrada = 0;
 double   previstoEntrada = 0, executadoEntrada = 0, stopEntrada = 0;
 string   motivoEntrada = "";
+string   saidaPendente = "";
+double   previstoPendente = 0;
 
 //+------------------------------------------------------------------+
 bool ContaPermitida()
@@ -188,9 +191,11 @@ bool Seguidos(const MqlRates &r[], const int quantos)
   }
 
 //+------------------------------------------------------------------+
-void Registrar(const string motivoSaida, const double previstoSaida)
+bool Registrar(const string motivoSaida, const double previstoSaida)
   {
    double precoSaida = 0, taxas = 0;
+   datetime horaSaida = 0;
+   string causaSaida = motivoSaida;
    if(HistorySelectByPosition(idPosicao))
      {
       for(int i = 0; i < HistoryDealsTotal(); i++)
@@ -198,17 +203,25 @@ void Registrar(const string motivoSaida, const double previstoSaida)
          ulong t = HistoryDealGetTicket(i);
          taxas += MathAbs(HistoryDealGetDouble(t, DEAL_COMMISSION)) + MathAbs(HistoryDealGetDouble(t, DEAL_FEE));
          if((ENUM_DEAL_ENTRY)HistoryDealGetInteger(t, DEAL_ENTRY) == DEAL_ENTRY_OUT)
+           {
             precoSaida = HistoryDealGetDouble(t, DEAL_PRICE);
+            horaSaida = (datetime)HistoryDealGetInteger(t, DEAL_TIME);
+            if((ENUM_DEAL_REASON)HistoryDealGetInteger(t, DEAL_REASON) != DEAL_REASON_SL && motivoSaida == "stop")
+               causaSaida = "fechamento externo (conferir histórico)";
+           }
         }
      }
-   if(precoSaida <= 0)
-      precoSaida = previstoSaida;
-   string origem = "RoboSimuladorWDO v1.00, conta simulador";
+   if(precoSaida <= 0 || horaSaida == 0)
+     {
+      Print("WDO robô: aguardando histórico de saída para gravar o diário; novas entradas suspensas.");
+      return(false); // Nunca apresentar preço previsto como execução real.
+     }
+   string origem = "RoboSimuladorWDO v1.01, conta simulador";
    double taxasPrevistas = 2 * CUSTO_LADO;
    if(taxas <= 0)
      {
       taxas = taxasPrevistas;
-      origem += "; simulador sem cobranca: taxas executadas = previstas";
+      origem += ", simulador sem cobranca: taxas executadas = previstas";
      }
    int digitos = (int)SymbolInfoInteger(ativoOrdem, SYMBOL_DIGITS);
    string hipotese = (Estrategia == ACELERACAO_CANAL_M15) ?
@@ -217,24 +230,26 @@ void Registrar(const string motivoSaida, const double previstoSaida)
    string linha = StringFormat("%s-%I64d;simulador;WDO;%s;1;%s;%s;%s;%s;%s;%s;%.2f;%.2f;%s;;%s;%s;%s;%s",
                                NomeEstrategia(), (long)horaEntrada,
                                ladoAberto > 0 ? "comprado" : "vendido",
-                               Data(horaEntrada), Data(TimeCurrent()),
+                               Data(horaEntrada), Data(horaSaida),
                                DoubleToString(previstoEntrada, digitos), DoubleToString(Arredonda(previstoSaida), digitos),
                                DoubleToString(executadoEntrada, digitos), DoubleToString(precoSaida, digitos),
                                taxasPrevistas, taxas, DoubleToString(stopEntrada, digitos),
-                               hipotese, motivoEntrada, motivoSaida, origem);
-   int h = FileOpen(ARQUIVO_DIARIO, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
+                               hipotese, motivoEntrada, causaSaida, origem);
+   int h = FileOpen(ARQUIVO_DIARIO, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI, 0, CP_UTF8);
    if(h == INVALID_HANDLE)
      {
       Print("RoboSimuladorWDO: não consegui abrir o diário (erro ", GetLastError(), "). Linha: ", linha);
-      return;
+      return(false);
      }
    if(FileSize(h) == 0)
       FileWriteString(h, "id;ambiente;contrato;lado;quantidade;entrada;saida;preco_entrada_previsto;"
                       "preco_saida_previsto;preco_entrada_executado;preco_saida_executado;taxas_previstas;"
                       "taxas_executadas;stop;alvo;hipotese;motivo_entrada;motivo_saida;origem\r\n");
    FileSeek(h, 0, SEEK_END);
-   FileWriteString(h, linha + "\r\n");
+   uint gravados = FileWriteString(h, linha + "\r\n");
+   FileFlush(h);
    FileClose(h);
+   return(gravados > 0);
   }
 
 //+------------------------------------------------------------------+
@@ -242,35 +257,48 @@ void Fechar(const string motivo, const double previsto)
   {
    if(!aberta)
       return;
-   if(!trade.PositionClose(ativoOrdem))
+   if(!PositionSelect(ativoOrdem) || PositionGetInteger(POSITION_IDENTIFIER) != idPosicao ||
+      PositionGetInteger(POSITION_MAGIC) != Magico)
+      return;
+   if(!trade.PositionClose(ativoOrdem) || trade.ResultRetcode() != TRADE_RETCODE_DONE ||
+      PositionSelect(ativoOrdem))
      {
       Avisar(StringFormat("WDO robô: FALHA ao zerar (%s), retcode %d. Zere manualmente no simulador.",
                           motivo, trade.ResultRetcode()));
       return;
      }
-   Registrar(motivo, previsto);
+   saidaPendente = motivo;
+   previstoPendente = previsto;
+   if(!Registrar(motivo, previsto))
+      return;
    Avisar(StringFormat("WDO robô (%s): ZEROU %s. Motivo: %s.", NomeEstrategia(),
                        ladoAberto > 0 ? "compra" : "venda", motivo));
    aberta = false;
    ladoAberto = 0;
+   saidaPendente = "";
   }
 
 //+------------------------------------------------------------------+
 void Abrir(const int lado, const double previsto, const string motivo)
   {
+   if(aberta || bloqueado || PositionSelect(ativoOrdem) || OrdersTotal() > 0)
+      return; // Não somar, reduzir ou inverter exposição existente.
    double preco = lado > 0 ? SymbolInfoDouble(ativoOrdem, SYMBOL_ASK) : SymbolInfoDouble(ativoOrdem, SYMBOL_BID);
    double pct = (Estrategia == ACELERACAO_CANAL_M15) ? CANAL_STOP : FORCA_STOP;
    double sl = Arredonda(preco * (1.0 - lado * pct));
    bool ok = lado > 0 ? trade.Buy(1, ativoOrdem, 0.0, sl, 0.0, NomeEstrategia())
                       : trade.Sell(1, ativoOrdem, 0.0, sl, 0.0, NomeEstrategia());
-   if(!ok || (trade.ResultRetcode() != TRADE_RETCODE_DONE && trade.ResultRetcode() != TRADE_RETCODE_PLACED))
+   if(!ok || (trade.ResultRetcode() != TRADE_RETCODE_DONE))
      {
-      Avisar(StringFormat("WDO robô: ordem RECUSADA (%s), retcode %d.", lado > 0 ? "compra" : "venda",
+      bloqueado = true; // PLACED/execução parcial exigem reconciliação, nunca nova entrada.
+      Avisar(StringFormat("WDO robô: ordem não confirmada (%s), retcode %d.", lado > 0 ? "compra" : "venda",
                           trade.ResultRetcode()));
       return;
      }
-   if(!PositionSelect(ativoOrdem))
+   if(!PositionSelect(ativoOrdem) || PositionGetInteger(POSITION_MAGIC) != Magico ||
+      PositionGetDouble(POSITION_VOLUME) != 1.0)
      {
+      bloqueado = true;
       Avisar("WDO robô: ordem enviada, mas a posição não apareceu. Confira o simulador.");
       return;
      }
@@ -301,7 +329,8 @@ int OnInit()
       return(INIT_FAILED);
      }
    ativoOrdem = (SimboloOrdem == "") ? _Symbol : SimboloOrdem;
-   if(StringFind(ativoOrdem, "$") >= 0)
+   if(Magico <= 0 || StringFind(ativoOrdem, "WDO") != 0 || StringFind(SimboloSinal, "WDO") != 0 ||
+      StringFind(ativoOrdem, "$") >= 0)
      {
       Alert("RoboSimuladorWDO: informe em SimboloOrdem o contrato vigente (ex.: WDOZ26); ", ativoOrdem,
             " é só a série histórica e não recebe ordens.");
@@ -313,20 +342,15 @@ int OnInit()
       return(INIT_PARAMETERS_INCORRECT);
      }
    tempo = (Estrategia == ACELERACAO_CANAL_M15) ? PERIOD_M15 : PERIOD_M5;
+   if(PositionSelect(ativoOrdem) || OrdersTotal() > 0)
+     {
+      Alert("RoboSimuladorWDO: inicie sem posição nem ordens pendentes. Retomada automática desativada: confira o histórico e o diário.");
+      return(INIT_FAILED);
+     }
+   trade.SetAsyncMode(false);
    trade.SetExpertMagicNumber((ulong)Magico);
    trade.SetTypeFillingBySymbol(ativoOrdem);
    ultimoCandle = iTime(SimboloSinal, tempo, 0);   // não age sobre o candle já em andamento
-   if(PositionSelect(ativoOrdem) && PositionGetInteger(POSITION_MAGIC) == Magico)
-     {
-      aberta = true;
-      ladoAberto = (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY) ? 1 : -1;
-      idPosicao = PositionGetInteger(POSITION_IDENTIFIER);
-      horaEntrada = (datetime)PositionGetInteger(POSITION_TIME);
-      executadoEntrada = PositionGetDouble(POSITION_PRICE_OPEN);
-      previstoEntrada = executadoEntrada;
-      stopEntrada = PositionGetDouble(POSITION_SL);
-      motivoEntrada = "posição retomada após reiniciar o robô";
-     }
    datetime venc = (datetime)SymbolInfoInteger(ativoOrdem, SYMBOL_EXPIRATION_TIME);
    if(venc > 0 && venc - TimeCurrent() < 3 * 86400)
       Alert("RoboSimuladorWDO: ", ativoOrdem, " vence em menos de 3 dias. Troque SimboloOrdem pelo próximo contrato.");
@@ -349,13 +373,26 @@ void Processar()
       ExpertRemove();
       return;
      }
+   if(bloqueado)
+      return;
+   if(PositionSelect(ativoOrdem) && (!aberta ||
+      PositionGetInteger(POSITION_IDENTIFIER) != idPosicao ||
+      PositionGetInteger(POSITION_MAGIC) != Magico || PositionGetDouble(POSITION_VOLUME) != 1.0))
+     {
+      bloqueado = true;
+      Avisar("WDO robô: posição inesperada. Robô bloqueado; confira o simulador manualmente.");
+      return;
+     }
    // Stop executado pelo servidor
    if(aberta && !PositionSelect(ativoOrdem))
      {
-      Registrar("stop", stopEntrada);
+      if(!Registrar(saidaPendente == "" ? "stop" : saidaPendente,
+                    saidaPendente == "" ? stopEntrada : previstoPendente))
+         return;
       Avisar(StringFormat("WDO robô (%s): saiu no STOP.", NomeEstrategia()));
       aberta = false;
       ladoAberto = 0;
+      saidaPendente = "";
      }
    // Zeragem às 18h00
    if(aberta && MinutoDoDia(TimeCurrent()) >= ZERAGEM)
@@ -364,13 +401,12 @@ void Processar()
    datetime t0 = iTime(SimboloSinal, tempo, 0);
    if(t0 == 0 || t0 == ultimoCandle)
       return;
-   ultimoCandle = t0;
-
    int quantos = (Estrategia == ACELERACAO_CANAL_M15) ? CANAL_N + 1 : FORCA_N + 1;
    MqlRates r[];
    ArraySetAsSeries(r, true);
    if(CopyRates(SimboloSinal, tempo, 1, quantos, r) != quantos)
       return;
+   ultimoCandle = t0; // Só consome o candle depois de carregar as barras.
    if(!MesmoDia(r[0].time, t0))
       return;                                   // sinal do último candle do dia não vale no dia seguinte
    if(!Seguidos(r, quantos))
@@ -386,7 +422,7 @@ void Processar()
      {
       if(atual == -1)
          Fechar("sinal contrário (" + quando + ")", abertura);
-      if(podeEntrar)
+      if(podeEntrar && !aberta)
          Abrir(1, abertura, (Estrategia == ACELERACAO_CANAL_M15 ? "aceleração de alta " : "candle de força de alta ") + quando);
      }
    else
@@ -394,7 +430,7 @@ void Processar()
         {
          if(atual == 1)
             Fechar("sinal contrário (" + quando + ")", abertura);
-         if(podeEntrar)
+         if(podeEntrar && !aberta)
             Abrir(-1, abertura, (Estrategia == ACELERACAO_CANAL_M15 ? "aceleração de baixa " : "candle de força de baixa ") + quando);
         }
       else
@@ -405,3 +441,4 @@ void Processar()
 void OnTick()  { Processar(); }
 void OnTimer() { Processar(); }
 //+------------------------------------------------------------------+
+
