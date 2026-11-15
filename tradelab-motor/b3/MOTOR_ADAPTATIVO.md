@@ -1,5 +1,10 @@
 # Motor adaptativo de pesquisa — 11/11/2026
 
+**Atualização em 15/11/2026:** o Claude já executou as seis medições reais da rodada 10.
+Todas foram reprovadas, conforme `HIPOTESES.md`. As instruções de execução abaixo são
+histórico da entrega 0.4.0. Não repetir a pesquisa nem criar novas variações nesses cinco
+anos; a próxima coleta é prospectiva no simulador, com diário verificável.
+
 O pedido do Juares é reconhecer condições diferentes do mercado, escolher entre várias
 formas de operar e aprender com os resultados. A versão 0.4.0 implementa uma primeira
 política de seleção para pesquisa em WIN e WDO, nos tempos de 5, 15 e 30 minutos.
@@ -131,9 +136,8 @@ Referências consultadas em 11/11/2026:
 
 ## Estado desta entrega
 
-O módulo e o comando estão implementados. Verificação com preços artificiais cobre
-causalidade, aprendizado com resultados fechados, abstenção, responsável pela posição,
-custos, inversão e exportação. **Os CSVs reais e relatórios completos não estão neste
-checkout; nenhum resultado financeiro novo foi produzido.** A interface PWA não foi
-alterada nem conectada ao seletor. O próximo passo é a execução das seis medições no
-ambiente que contém os CSVs, respeitando o registro prévio e sem abrir a reserva.
+O módulo e o comando foram verificados com preços artificiais. Depois, as seis medições
+reais foram executadas pelo Claude e reprovadas. Os CSVs reais e relatórios completos
+continuam fora do Git; esta entrega não os reexecutou. A interface PWA não foi alterada
+nem conectada ao seletor. O próximo passo é a coleta prospectiva no simulador,
+documentada em [DIARIO_AUTOMATICO_MT5.md](DIARIO_AUTOMATICO_MT5.md).

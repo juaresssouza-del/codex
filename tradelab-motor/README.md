@@ -158,6 +158,18 @@ comprar e segurar com a mesma exposição rendeu mais. A busca em cripto foi enc
 `python -m motor adaptativo-b3 --help`: compara seis especialistas e escolhe com base
 em resultados simulados já encerrados, com opção de ficar de fora. Tempos permitidos:
 5, 15 e 30 minutos; hipóteses 55–57 registradas antes de testar em mercado. Mantém a
-reserva bloqueada. Código verificado com preços artificiais; rentabilidade ainda não
-testada nos CSVs reais. Instruções e limites em [b3/MOTOR_ADAPTATIVO.md](b3/MOTOR_ADAPTATIVO.md).
+reserva bloqueada. O Claude executou as seis medições reais da rodada 10: todas
+reprovadas, conforme `HIPOTESES.md`. Não criar novas variações nesse histórico.
+Instruções e limites em [b3/MOTOR_ADAPTATIVO.md](b3/MOTOR_ADAPTATIVO.md).
+
+## Diário semanal e calendário oficial (0.5.0)
+
+O diário do EA WDO mantém taxas observadas separadas das previstas, confere os fills
+e exporta o modelo existente. `diario-b3` compara também por semana ISO em Brasília.
+[Instalação e limites do diário](b3/DIARIO_AUTOMATICO_MT5.md); MT5/PowerShell aguardam
+compilação e validação no Windows. Nenhuma conta foi conectada por esta entrega.
+
+O [calendário da hipótese 26](b3/calendario_h26/README.md) reúne 186 eventos oficiais
+de novembro/2021 a junho/2026, com fonte por data e exceções documentadas.
+A hipótese não foi executada; critérios, estratégias de pesquisa e reserva preservados.
 

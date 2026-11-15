@@ -7,7 +7,7 @@
 //| Grava cada operação encerrada no formato do diario-b3.           |
 //+------------------------------------------------------------------+
 #property copyright   "TradeLab"
-#property version     "1.01"
+#property version     "1.02"
 #property description "Robô de SIMULADOR para o WDO. Recusa conta real."
 #property description "Regras das hipóteses testadas, congeladas no código."
 
@@ -24,6 +24,7 @@ input string          SimboloSinal = "WDO$N";               // Série contínua 
 input string          SimboloOrdem = "";                    // Contrato vigente para as ordens (ex.: WDOZ26)
 input long            Magico       = 20261112;              // Identificador das ordens do robô
 input bool            Notificar    = true;                  // Notificação no celular a cada entrada e saída
+input int             UTCServidorMinutos = -9999;           // Fuso UTC do servidor: obrigatório, não presumir Brasília
 
 // Regras congeladas: são as do teste. Mudar qualquer valor é outra hipótese.
 #define CANAL_N         40
@@ -42,6 +43,8 @@ CTrade          trade;
 string          ativoOrdem;
 ENUM_TIMEFRAMES tempo;
 datetime        ultimoCandle = 0;
+long            contaDiario = 0; // Só em memória; nunca exportar login.
+bool            relogioAvisado = false;
 
 // Posição aberta pelo robô
 bool     aberta = false;
@@ -57,23 +60,32 @@ double   previstoPendente = 0;
 //+------------------------------------------------------------------+
 bool ContaPermitida()
   {
-   if(MQLInfoInteger(MQL_TESTER))
-      return(true);   // Testador de estratégia do MT5
-   return(AccountInfoInteger(ACCOUNT_TRADE_MODE) == ACCOUNT_TRADE_MODE_DEMO);
+   return(!MQLInfoInteger(MQL_TESTER) && !MQLInfoInteger(MQL_OPTIMIZATION) &&
+          AccountInfoInteger(ACCOUNT_TRADE_MODE) == ACCOUNT_TRADE_MODE_DEMO &&
+          AccountInfoString(ACCOUNT_CURRENCY) == "BRL" &&
+          (contaDiario == 0 || AccountInfoInteger(ACCOUNT_LOGIN) == contaDiario));
+  }
+
+bool RelogioDiarioValido()
+  {
+   if(UTCServidorMinutos < -840 || UTCServidorMinutos > 840 ||
+      !TerminalInfoInteger(TERMINAL_CONNECTED))
+      return(false);
+   return(MathAbs((double)(TimeTradeServer() - TimeGMT()) - UTCServidorMinutos * 60.0) <= 3.0);
   }
 
 int MinutoDoDia(const datetime t)
   {
    MqlDateTime d;
-   TimeToStruct(t, d);
+   TimeToStruct(t - (UTCServidorMinutos + 180) * 60, d); // Regra 17h30/18h em Brasília.
    return(d.hour * 60 + d.min);
   }
 
 bool MesmoDia(const datetime a, const datetime b)
   {
    MqlDateTime x, y;
-   TimeToStruct(a, x);
-   TimeToStruct(b, y);
+   TimeToStruct(a - (UTCServidorMinutos + 180) * 60, x);
+   TimeToStruct(b - (UTCServidorMinutos + 180) * 60, y);
    return(x.year == y.year && x.mon == y.mon && x.day == y.day);
   }
 
@@ -87,9 +99,9 @@ double Arredonda(const double p)
 
 string Data(const datetime t)
   {
-   string s = TimeToString(t, TIME_DATE | TIME_SECONDS);   // AAAA.MM.DD HH:MM:SS
+   string s = TimeToString(t - UTCServidorMinutos * 60, TIME_DATE | TIME_SECONDS);
    StringReplace(s, ".", "-");
-   return(s);
+   return(s + "+00:00"); // Python converte UTC para Brasília; não adivinhar o fuso.
   }
 
 string NomeEstrategia()
@@ -193,48 +205,92 @@ bool Seguidos(const MqlRates &r[], const int quantos)
 //+------------------------------------------------------------------+
 bool Registrar(const string motivoSaida, const double previstoSaida)
   {
-   double precoSaida = 0, taxas = 0;
-   datetime horaSaida = 0;
-   string causaSaida = motivoSaida;
-   if(HistorySelectByPosition(idPosicao))
+   if(!ContaPermitida() || !RelogioDiarioValido() || !HistorySelectByPosition(idPosicao))
+      return(false);
+   double qEntrada = 0, qSaida = 0, somaEntrada = 0, somaSaida = 0, custos = 0, lucro = 0;
+   datetime entradaReal = 0, horaSaida = 0;
+   bool saidaSemReferencia = false;
+   for(int i = 0; i < HistoryDealsTotal(); i++)
      {
-      for(int i = 0; i < HistoryDealsTotal(); i++)
+      ulong t = HistoryDealGetTicket(i);
+      double q, p, comissao, taxa, swap, ganho;
+      long tipo, entry, hora, razao;
+      if(t == 0 || !HistoryDealGetDouble(t, DEAL_VOLUME, q) ||
+         !HistoryDealGetDouble(t, DEAL_PRICE, p) ||
+         !HistoryDealGetDouble(t, DEAL_COMMISSION, comissao) ||
+         !HistoryDealGetDouble(t, DEAL_FEE, taxa) ||
+         !HistoryDealGetDouble(t, DEAL_SWAP, swap) ||
+         !HistoryDealGetDouble(t, DEAL_PROFIT, ganho) ||
+         !HistoryDealGetInteger(t, DEAL_TYPE, tipo) ||
+         !HistoryDealGetInteger(t, DEAL_ENTRY, entry) ||
+         !HistoryDealGetInteger(t, DEAL_TIME, hora) ||
+         !HistoryDealGetInteger(t, DEAL_REASON, razao))
+         return(false); // Getter com erro não é taxa zero.
+      if(!MathIsValidNumber(q) || !MathIsValidNumber(p) || !MathIsValidNumber(comissao) ||
+         !MathIsValidNumber(taxa) || !MathIsValidNumber(swap) || !MathIsValidNumber(ganho))
+         return(false);
+      custos -= comissao + taxa + swap;
+      lucro += ganho;
+      if(tipo != DEAL_TYPE_BUY && tipo != DEAL_TYPE_SELL)
         {
-         ulong t = HistoryDealGetTicket(i);
-         taxas += MathAbs(HistoryDealGetDouble(t, DEAL_COMMISSION)) + MathAbs(HistoryDealGetDouble(t, DEAL_FEE));
-         if((ENUM_DEAL_ENTRY)HistoryDealGetInteger(t, DEAL_ENTRY) == DEAL_ENTRY_OUT)
-           {
-            precoSaida = HistoryDealGetDouble(t, DEAL_PRICE);
-            horaSaida = (datetime)HistoryDealGetInteger(t, DEAL_TIME);
-            if((ENUM_DEAL_REASON)HistoryDealGetInteger(t, DEAL_REASON) != DEAL_REASON_SL && motivoSaida == "stop")
-               causaSaida = "fechamento externo (conferir histórico)";
-           }
+         Print("Diário pendente: lançamento não comercial associado à posição; concilie o extrato.");
+         return(false);
         }
+      if(q <= 0 || p <= 0 || entry == DEAL_ENTRY_INOUT || entry == DEAL_ENTRY_OUT_BY)
+         return(false); // Reversão/close-by não é uma operação simples de 1 contrato.
+      if(entry == DEAL_ENTRY_IN)
+        {
+         if((ladoAberto > 0 && tipo != DEAL_TYPE_BUY) || (ladoAberto < 0 && tipo != DEAL_TYPE_SELL))
+            return(false);
+         qEntrada += q;
+         somaEntrada += q * p;
+         if(entradaReal == 0 || hora < entradaReal)
+            entradaReal = (datetime)hora;
+        }
+      else if(entry == DEAL_ENTRY_OUT)
+        {
+         if((ladoAberto > 0 && tipo != DEAL_TYPE_SELL) || (ladoAberto < 0 && tipo != DEAL_TYPE_BUY))
+            return(false);
+         qSaida += q;
+         somaSaida += q * p;
+         if(hora > horaSaida)
+            horaSaida = (datetime)hora;
+         if(motivoSaida == "stop" && razao != DEAL_REASON_SL)
+            saidaSemReferencia = true;
+        }
+      else
+         return(false);
      }
-   if(precoSaida <= 0 || horaSaida == 0)
+   if(MathAbs(qEntrada - 1.0) > 1e-9 || MathAbs(qSaida - 1.0) > 1e-9 ||
+      entradaReal == 0 || horaSaida < entradaReal || !MesmoDia(entradaReal, horaSaida) ||
+      custos < 0 || saidaSemReferencia || previstoEntrada <= 0 || previstoSaida <= 0)
      {
-      Print("WDO robô: aguardando histórico de saída para gravar o diário; novas entradas suspensas.");
-      return(false); // Nunca apresentar preço previsto como execução real.
+      Print("Diário pendente: volume, data, rebate ou referência de saída não conciliados. Não estimar campos.");
+      return(false);
      }
-   string origem = "RoboSimuladorWDO v1.01, conta simulador";
+   double precoEntrada = somaEntrada / qEntrada, precoSaida = somaSaida / qSaida;
+   if(MathAbs(lucro - ladoAberto * (precoSaida - precoEntrada) * 10.0) > 0.011)
+     {
+      Print("Diário pendente: lucro do MT5 difere do preço x ponto WDO. Concilie o extrato.");
+      return(false);
+     }
+   string origem = "RoboSimuladorWDO v1.02, demo BRL, custos vinculados observados";
+   if(custos == 0)
+      origem += ", taxa zero no simulador: custo real EA nao confirmado";
    double taxasPrevistas = 2 * CUSTO_LADO;
-   if(taxas <= 0)
-     {
-      taxas = taxasPrevistas;
-      origem += ", simulador sem cobranca: taxas executadas = previstas";
-     }
    int digitos = (int)SymbolInfoInteger(ativoOrdem, SYMBOL_DIGITS);
    string hipotese = (Estrategia == ACELERACAO_CANAL_M15) ?
                      "rodada 9 h48: canal_aceleracao WDO 15m n=40 R2=0,5 stop 2%" :
                      "rodada 6 h22: forca WDO 5m N=20 k=3 corpo 60% stop 0,5%";
-   string linha = StringFormat("%s-%I64d;simulador;WDO;%s;1;%s;%s;%s;%s;%s;%s;%.2f;%.2f;%s;;%s;%s;%s;%s",
-                               NomeEstrategia(), (long)horaEntrada,
+   string identificador = StringFormat("%s-%s-%I64d", NomeEstrategia(), ativoOrdem, idPosicao);
+   string linha = StringFormat("%s;simulador;WDO;%s;1;%s;%s;%s;%s;%s;%s;%.2f;%.2f;%s;;%s;%s;%s;%s",
+                               identificador,
                                ladoAberto > 0 ? "comprado" : "vendido",
-                               Data(horaEntrada), Data(horaSaida),
+                               Data(entradaReal), Data(horaSaida),
                                DoubleToString(previstoEntrada, digitos), DoubleToString(Arredonda(previstoSaida), digitos),
-                               DoubleToString(executadoEntrada, digitos), DoubleToString(precoSaida, digitos),
-                               taxasPrevistas, taxas, DoubleToString(stopEntrada, digitos),
-                               hipotese, motivoEntrada, causaSaida, origem);
+                               DoubleToString(precoEntrada, digitos), DoubleToString(precoSaida, digitos),
+                               taxasPrevistas, custos, DoubleToString(stopEntrada, digitos),
+                               hipotese, motivoEntrada, motivoSaida, origem);
    int h = FileOpen(ARQUIVO_DIARIO, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI, 0, CP_UTF8);
    if(h == INVALID_HANDLE)
      {
@@ -242,9 +298,28 @@ bool Registrar(const string motivoSaida, const double previstoSaida)
       return(false);
      }
    if(FileSize(h) == 0)
-      FileWriteString(h, "id;ambiente;contrato;lado;quantidade;entrada;saida;preco_entrada_previsto;"
+     {
+      uint cabecalho = FileWriteString(h, "id;ambiente;contrato;lado;quantidade;entrada;saida;preco_entrada_previsto;"
                       "preco_saida_previsto;preco_entrada_executado;preco_saida_executado;taxas_previstas;"
                       "taxas_executadas;stop;alvo;hipotese;motivo_entrada;motivo_saida;origem\r\n");
+      if(cabecalho == 0)
+        {
+         FileClose(h);
+         return(false);
+        }
+     }
+   FileSeek(h, 0, SEEK_SET);
+   while(!FileIsEnding(h))
+     {
+      string existente = FileReadString(h);
+      if(StringFind(existente, identificador + ";") == 0)
+        {
+         FileClose(h);
+         if(existente != linha)
+            Print("Diário pendente: mesmo identificador com campos diferentes. Concilie antes de substituir.");
+         return(existente == linha); // Repetir o processamento não duplica uma operação.
+        }
+     }
    FileSeek(h, 0, SEEK_END);
    uint gravados = FileWriteString(h, linha + "\r\n");
    FileFlush(h);
@@ -323,6 +398,12 @@ int OnInit()
       Alert("RoboSimuladorWDO: esta NÃO é uma conta de simulador. O robô não roda em conta real.");
       return(INIT_FAILED);
      }
+   contaDiario = AccountInfoInteger(ACCOUNT_LOGIN);
+   if(!RelogioDiarioValido())
+     {
+      Alert("Diário: informe UTCServidorMinutos conforme o relógio do servidor. Demo BRL, conexão e relógio UTC precisam estar corretos. Testador histórico desativado.");
+      return(INIT_PARAMETERS_INCORRECT);
+     }
    if(AccountInfoInteger(ACCOUNT_MARGIN_MODE) != ACCOUNT_MARGIN_MODE_RETAIL_NETTING)
      {
       Alert("RoboSimuladorWDO: a conta precisa ser Netting (como a da B3).");
@@ -369,10 +450,18 @@ void Processar()
   {
    if(!ContaPermitida())
      {
-      Alert("RoboSimuladorWDO: conta não é de simulador. Robô desligado.");
+      Alert("RoboSimuladorWDO: conta ou moeda mudou. Robô desligado; confira a posição no simulador.");
       ExpertRemove();
       return;
      }
+   if(!RelogioDiarioValido())
+     {
+      if(!relogioAvisado)
+         Print("Robô e diário suspensos: aguardando conexão e conferência do fuso UTC do servidor.");
+      relogioAvisado = true;
+      return; // Reconectar não apaga o estado da posição em memória.
+     }
+   relogioAvisado = false;
    if(bloqueado)
       return;
    if(PositionSelect(ativoOrdem) && (!aberta ||
@@ -415,7 +504,7 @@ void Processar()
    double abertura = iOpen(SimboloSinal, tempo, 0);
    bool podeEntrar = MinutoDoDia(t0) < MathMin(ULTIMA_ENTRADA, ZERAGEM) &&
                      (long)(t0 - r[0].time) == PeriodSeconds(tempo);
-   string quando = TimeToString(r[0].time, TIME_MINUTES);
+   string quando = TimeToString(r[0].time - (UTCServidorMinutos + 180) * 60, TIME_MINUTES);
    int atual = aberta ? ladoAberto : 0;
 
    if(s == 1 && atual != 1)

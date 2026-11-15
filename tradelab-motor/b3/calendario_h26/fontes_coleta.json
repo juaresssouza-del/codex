@@ -1,0 +1,507 @@
+[
+  {
+    "url": "https://agenciadenoticias.ibge.gov.br/busca-avancada.html?produto=9256&tipo%5B0%5D=releases",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "73d0851cbb0731c9b1b5d746a9b695470d44ebe134f31f0edf6d8bbb5bee39b7"
+  },
+  {
+    "url": "https://agenciadenoticias.ibge.gov.br/busca-avancada.html?produto=9256&tipo%5B0%5D=releases&start=30",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "4b33d25afad1c695f2d558d2801f0f87774ccafdcf80548970da7d241b7d5b9c"
+  },
+  {
+    "url": "https://agenciadenoticias.ibge.gov.br/busca-avancada.html?produto=9256&tipo%5B0%5D=releases&start=60",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "818866b0e818a5c1d62c49b1c44e2845741a2514b086cecf9d2f5eaefc5cf0fa"
+  },
+  {
+    "url": "https://www.b3.com.br/data/files/21/E1/08/FF/077CC710BD0885C7AC094EA8/EC%20109-2021-VNC%20Calendario%202022%20com%20ajustes.pdf",
+    "consultado_em": "2026-11-15",
+    "metodo": "Leitura da fonte oficial via ferramenta web; sem hash de download."
+  },
+  {
+    "url": "https://www.b3.com.br/data/files/29/27/8A/45/89584810A58E3348AC094EA8/OC%20151-2022%20PRE%20Calend%C3%A1rio%20de%20Feriados%20em%202023%20e%20funcionamento%20da%20B3%20em%2022.02.2023%20%28Quarta-Feira%20de%20Cinzas%29%20%28PT%29.pdf",
+    "consultado_em": "2026-11-15",
+    "metodo": "Leitura da fonte oficial via ferramenta web; sem hash de download."
+  },
+  {
+    "url": "https://www.b3.com.br/data/files/62/23/AC/05/CD630910CA8BA9F8DC0D8AA8/OC%20085-2024%20PRE%20Errata%20Retificacao%20do%20Calendario%20de%20Feriados%202024%20-%20Feriado%20Labor%20Day%20%28PT%29.pdf",
+    "consultado_em": "2026-11-15",
+    "metodo": "Leitura da fonte oficial via ferramenta web; sem hash de download."
+  },
+  {
+    "url": "https://www.b3.com.br/main.jsp?lumA=1&lumII=8A80CB81633FBF0B0163402956733E3A&lumPageId=8A6882694E91F2D4014E9248DBB001C9",
+    "consultado_em": "2026-11-15",
+    "metodo": "Leitura da fonte oficial via ferramenta web; sem hash de download."
+  },
+  {
+    "url": "https://www.b3.com.br/pt_br/noticias/calendario-de-feriados-2025.htm",
+    "consultado_em": "2026-11-15",
+    "metodo": "Leitura da fonte oficial via ferramenta web; sem hash de download."
+  },
+  {
+    "url": "https://www.b3.com.br/pt_br/noticias/calendario-de-negociacao-da-b3-confira-o-funcionamento-da-bolsa-em-2026.htm",
+    "consultado_em": "2026-11-15",
+    "metodo": "Leitura da fonte oficial via ferramenta web; sem hash de download."
+  },
+  {
+    "url": "https://www.bcb.gov.br/api/servico/sitebcb/copom/comunicados?quantidade=100",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "a70f5df1635c145d5346ee3832d7118f92e8e1fd213b88ae33cdb446b79d1789"
+  },
+  {
+    "url": "https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm",
+    "consultado_em": "2026-11-15",
+    "metodo": "Leitura da fonte oficial via ferramenta web; sem hash de download."
+  },
+  {
+    "url": "https://www.bls.gov/bls/news-release/empsit.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "876329bf65bbcd0b5640b9ff04307a5d79779fbd696ce36a6865c9b11b2203ef"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_01052024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "da3fd6f940aac5a11cc3ee5ce5c53a6b6901b1486dbc29c07957d1d42002b29a",
+    "codificacao": "cp1252 (release legado BLS)",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-01-05"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_01062023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "61d3c44629640c779d63ec2610b7e4c32debc8dcd84d8212b92b9ce4f61f910c",
+    "codificacao": "cp1252 (release legado BLS)",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-01-06"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_01072022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "8fc82e94bf9a11ec64bce76ce2bf8cca889f4715b7d82094f969479bb6265b42",
+    "codificacao": "cp1252 (release legado BLS)",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-01-07"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_01092026.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "7cc113005b6baba66c5cf85feb83d4467479924b5661d59a6ef1237ff135df27",
+    "codificacao": "cp1252 (release legado BLS)",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2026-01-09"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_01102025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "696ad6dd62fb4666a2333386ca09e81e5096ddf612d32c4d2ffd716ce796084c",
+    "codificacao": "cp1252 (release legado BLS)",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-01-10"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_02022024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "bbf1e54126c64258fa0e9dee99812520e6bac52fe5ff3021124e6153b98cd56a",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-02-02"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_02032023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "69fc64bcdbac73513fdb330d2823148e74a186c56aecdfe70f90bd5166a514c9",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-02-03"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_02042022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "94bc65c6839082f18d0533033b043dd45c0195cae38faa608a48168c9b2c2bb1",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-02-04"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_02072025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "e653df54e98d870033b675cd6c2bf57f0ea944b4563ce30679bd6b32a8941991",
+    "codificacao": "cp1252 (release legado BLS)",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-02-07"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_02112026.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "cd282f892c07c124d465f184ad9fab298893d4616b64d99fff467feae60a939f",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2026-02-11"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_03042022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "3397ad8077f04b56fbd6f7585d053485cc195e2adb7c0d941747809b344673fc",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-03-04"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_03062026.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "596a68af690cac8805340128de322b5b4ff3f3b7773cc77151c061340b7d1435",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2026-03-06"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_03072025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "d3d200716e88a6594647942a43e9a93f952d4103c246ced3aa2cee374af6d298",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-03-07"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_03082024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "7ac4bd1da8ba4eb93d793fd6b6943cc574daf4c24206f90cc8d46172b47c76d1",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-03-08"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_03102023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "9820fae8710d5073e238fbf572fbe64ad2eb863d95249e352d8f87d1ac519aa5",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-03-10"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_04012022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "3dd32bba26bb8aa29232b135dfdb6be2c364d1254c2c38beb4dfb62777b3c921",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-04-01"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_04032026.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "532760a4d2854a7ee19f238ffbdcbcfc2397f5914c33ea8bd423917b1bd0d818",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2026-04-03"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_04042025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "3b6a767171cc0f963f109033d36e751340db2200abafad1201fc3108e6e587ac",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-04-04"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_04052024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "a07782baaf7f65434c7cc38f8a46ace8a4492786d06c6780c3bdb24d8d4f8a7a",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-04-05"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_04072023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "784b1099e9e7bf68b5d286106f7ff578ee4f4277b92f4addbbb2a80a251bdf34",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-04-07"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_05022025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "d66ab0a84207da1342f12861c29a0e4978ccbebbd742c52b1e8533023cdc3873",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-05-02"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_05032024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "4b96d16d2b358e55d24f0be1b8743811d7e9519282d5d7d8d88d08abce23c7c1",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-05-03"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_05052023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "3ff75831ce5bdcaf45d93b54269931ab9f72011c538f3343a03ebdc555f11e4c",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-05-05"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_05062022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "da2f100555dfac5f714c54c7fa49d3c9946c1e69ac2aa393923f22ea7762c65e",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-05-06"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_05082026.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "1fbf18cc3628258342ab2488beb30dbce1a47a79ce83ec8bb5ed4b018cdb321b",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2026-05-08"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_06022023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "ba5920d0b52089345cb0b162d59934287dce1749f708cba0d62f45d857278053",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-06-02"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_06032022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "0f4768dbdd68a2e6bda09567190b589769c2352f4bb09cb3a95a3ef49d96f15a",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-06-03"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_06052026.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "5c872de512f133555f2ab7ac98b80ff89005e348611d1cae91a449ed992225e8",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2026-06-05"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_06062025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "427359066f3ccecb6c291c86f706e52280862acea8cb640f990bb9010a3982df",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-06-06"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_06072024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "83ae972096689ade37cfa50edcff3277f13315fb8365cf7f01ade4b844b1eaff",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-06-07"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_07032025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "cdebd2b9d549e47842226ce3ecb40f108c0d10390d60a1ff37f43c9abac25a9d",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-07-03"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_07052024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "9ebf777cf22d766a377c8c905ddb6b7605188718f44f601bb9e34b6a1f63b69a",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-07-05"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_07072023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "e9dd547db8e841b0a64391376d0bac6877c481bc38c93dc6b8817046b359e841",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-07-07"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_07082022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "fffe30a28a0ccb5e322fce57f39d876ebc9dd67fcaf6651debc1d22022ab0d42",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-07-08"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_08012025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "3dd179efacf0239bb6c2c8a9780dc30231411bfc5a2385275ff1bfa46e8ef153",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-08-01"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_08022024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "783294006c3db5aa531d6221d3f8a481dfa82f30e9657cb216c036cb7be1702c",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-08-02"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_08042023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "5330787c9e90c82620b98998e99314f1658eaaa6b7804f2bece8b5e869db04bb",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-08-04"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_08052022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "2b7e95da04b14736fbeaaad569af818174d3673fde0a5ea60357a5b8adad7636",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-08-05"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_09012023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "7002a690524bf7be0458439caf0de4fb6c6d74ae7365a8493d43476d00ca311f",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-09-01"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_09022022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "9439a6ae786015c4d02c9991783e570609478e37959231ab8eeabdf578feb422",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-09-02"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_09052025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "ca6186dccc99238b7a30b671c931cef474d4ed4484d6bb8e0d425e2f9a04713a",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-09-05"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_09062024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "0a8eefbcfd8e3c087160b7613af03f7c399e697f2e9eeda4661da650f3041b7e",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-09-06"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_10042024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "681459f0b0e14e72aae4f4b996aa45c79793d73d89f933208c85f09f0751d1ee",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-10-04"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_10062023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "785ca92afa1459606f5e2ea3d9db28e77accb0deabc232d4358395836f38137e",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-10-06"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_10072022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "e6a1ffac59051c55b52a13a3570df09371ddac958dcfe09baa5503c3c97895bb",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-10-07"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_11012024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "7dcc515f63d18cdb850482212987270b1cf36cf2d83daaf3101bd6d37b52d0a0",
+    "codificacao": "cp1252 (release legado BLS)",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-11-01"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_11032023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "96fdce55a2cc628ca6b107c5383855ec58d011d77f546a5267fac8defcdb12fd",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-11-03"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_11042022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "b1b493d96f186fc8b61974b9f0f0b431f76c096f40a6cb7a5a37bec46e2fb132",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-11-04"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_11052021.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "44fc6d5dd204774f1e4da7d28fa1f2ac1e4c744a097c0698d737b5afaa6a18dd",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2021-11-05"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_11202025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "32423903015128e72093392cfaf331a097db1aeb2e8e7d300bec15eef9b6dd8e",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-11-20"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_12022022.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "db127342d027e2aef0d40422ba6a5b12228793929f5444d0404d61f58d860556",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2022-12-02"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_12032021.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "23a191b2db1e57c047976256737ab8dfce29af7109d87e08ce67307c64d85816",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2021-12-03"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_12062024.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "709c4ef002562bdf6ef311754c47315aa28e0964be97d8d77089ab4285c8f8ee",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2024-12-06"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_12082023.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "76819044164efb1ffb8bedfca24f004fac24efe6ee29b930c9da4495ffe00a9a",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2023-12-08"
+  },
+  {
+    "url": "https://www.bls.gov/news.release/archives/empsit_12162025.htm",
+    "consultado_em": "2026-11-15",
+    "sha256_html": "69c3fa7418e51c61aebe003969fc72878c19f3ea9c25e14155e244a2591e7947",
+    "codificacao": "utf-8",
+    "metodo": "Data no cabeçalho embargoed until, não mês de referência.",
+    "data_publicacao": "2025-12-16"
+  },
+  {
+    "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "consultado_em": "2026-11-15",
+    "metodo": "Leitura do calendário oficial, anos 2021–2026, via ferramenta web; sem hash HTML de download."
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "periodo_inclusivo": [
+    "2021-11-01",
+    "2026-06-30"
+  ],
+  "consultado_em": "2026-11-15",
+  "eventos": 186,
+  "por_tipo": {
+    "FOMC": 38,
+    "PAYROLL": 55,
+    "IPCA": 56,
+    "COPOM": 37
+  },
+  "datas_civis_bloqueio": 179,
+  "hipotese_executada": false,
+  "criterios_alterados": false,
+  "arquivos": {
+    "eventos.csv": "c0ee8a1150cbbdd15378f6b38066185afd7fbbadbae91ccfd8ae3d6029fcee88",
+    "bloqueios.csv": "0799a4fd65b503608fb55b9935b1196596892f643c388624ae33337438114986",
+    "excecoes.csv": "4d3e7ded30ba0da976ef258065cb3792656f6ed2623791e8e49bddefc1e67b30",
+    "fontes_coleta.json": "4773016937f7330a4806da6ee1e76d7231bf1144e46fe38d320274fbdbd33010"
+  }
+}

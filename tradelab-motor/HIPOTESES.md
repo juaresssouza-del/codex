@@ -384,6 +384,14 @@ Dados necessários antes de rodar: o calendário oficial dessas datas de 11/2021
 (Fed, BLS, IBGE, Banco Central), com fonte. **Não roda com datas estimadas.** Como é uma
 hipótese num só mercado (WDO), só vira candidato se também passar no WIN com o mesmo filtro.
 
+**Coleta entregue pelo Codex em 15/11/2026, sem executar a hipótese 26:**
+[`b3/calendario_h26/`](b3/calendario_h26/README.md) contém 186 eventos oficiais
+(38 decisões regulares FOMC, 55 payroll, 56 IPCA e 37 Copom), fonte por data,
+adiamentos e pregão seguinte ao Copom conferido com a B3. A agenda inclui em
+`excecoes.csv` o voto FOMC de 22/08/2025 sobre estratégia de longo prazo. Antes de rodar,
+o Claude deve registrar como esse voto se enquadra no escopo de “decisão do FOMC”.
+Não escolher a interpretação depois do resultado. Nenhuma estratégia nova foi criada.
+
 ### Hipóteses 27 a 30 — o método do Juares: operar só em canal, nunca no lateral
 
 Descrição do Juares: operava sempre dentro de um canal de alta ou de baixa, comprando ou

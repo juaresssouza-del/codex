@@ -50,6 +50,20 @@ def _brl(n: Decimal) -> float:
     return valor
 
 
+def _resumir(registros: list[dict]) -> dict:
+    """Mesma conta para o total e cada semana; slippage já está no fill."""
+    ganhos = sum((Decimal(str(r["resultado_liquido"])) for r in registros
+                  if r["resultado_liquido"] > 0), Decimal(0))
+    perdas = -sum((Decimal(str(r["resultado_liquido"])) for r in registros
+                   if r["resultado_liquido"] < 0), Decimal(0))
+    campos = ("resultado_previsto", "resultado_bruto_executado", "resultado_liquido",
+              "taxas_executadas", "impacto_execucao_brl", "diferenca_liquido")
+    return {"operacoes": len(registros),
+            **{c: _brl(sum((Decimal(str(r[c])) for r in registros), Decimal(0))) for c in campos},
+            "acerto_liquido_pct": round(100 * sum(r["resultado_liquido"] > 0 for r in registros) / len(registros), 2),
+            "fator_lucro": float(ganhos / perdas) if perdas else None}
+
+
 def analisar(arquivo: Path, *, criterios: Path = CRITERIOS) -> dict:
     """Lê o CSV normalizado de operações completas, sem integração com corretora.
 
@@ -129,25 +143,23 @@ def analisar(arquivo: Path, *, criterios: Path = CRITERIOS) -> dict:
     if not registros:
         raise ValueError("Diário sem operações encerradas.")
     registros.sort(key=lambda r: (_hora(r["saida"]), _hora(r["entrada"]), r["id"]))
-    ganhos = sum(Decimal(str(r["resultado_liquido"])) for r in registros if r["resultado_liquido"] > 0)
-    perdas = -sum(Decimal(str(r["resultado_liquido"])) for r in registros if r["resultado_liquido"] < 0)
-    def soma(campo):
-        return _brl(sum((Decimal(str(r[campo])) for r in registros), Decimal(0)))
+    semanas: dict[str, list[dict]] = {}
+    for registro in registros:
+        ano, semana, _ = _hora(registro["saida"]).isocalendar()
+        semanas.setdefault(f"{ano}-W{semana:02d}", []).append(registro)
     return {
         "tipo": "diario_simulador_b3", "versao_motor": __version__, "ambiente": "simulador", "moeda": "BRL",
         "arquivo": Path(arquivo).name, "sha256_csv": hashlib.sha256(bruto).hexdigest(),
         "gerado_em": datetime.now(tz=BRT).isoformat(),
         "reserva_inicio": reserva.isoformat(), "operacoes": registros,
-        "resumo": {"operacoes": len(registros), "resultado_previsto": soma("resultado_previsto"),
-                   "resultado_bruto_executado": soma("resultado_bruto_executado"),
-                   "resultado_liquido": soma("resultado_liquido"), "taxas_executadas": soma("taxas_executadas"),
-                   "impacto_execucao_brl": soma("impacto_execucao_brl"), "diferenca_liquido": soma("diferenca_liquido"),
-                   "acerto_liquido_pct": round(100 * sum(r["resultado_liquido"] > 0 for r in registros) / len(registros), 2),
-                   "fator_lucro": float(ganhos / perdas) if perdas else None},
+        "resumo": _resumir(registros),
+        "semanas": [{"semana_iso": chave, **_resumir(linhas)} for chave, linhas in sorted(semanas.items())],
         "limites": ["Relatório descritivo de operações encerradas: não aprova estratégias.",
                     "O diário não calcula risco de posições abertas nem drawdown intradiário.",
                     "Preços previstos devem ser referências anteriores ao fill, não ajustados depois.",
                     "Taxas são totais da operação e precisam ser informadas; ausentes não viram zero.",
+                    "Taxa zero observada no simulador não confirma o custo da conta real ou da rota EA na XP.",
+                    "A semana ISO é determinada pela saída, no horário de Brasília.",
                     "O impacto da execução já está nos preços; não é descontado novamente do líquido."],
     }
 
@@ -199,6 +211,13 @@ def salvar_html(caminho: Path, relatorio: dict) -> None:
         linhas.append(f'<details><summary><span>{escapar(r["contrato"])} · {escapar(r["lado"])} · {escapar(r["id"])}</span><b>{escapar(dinheiro(r["resultado_liquido"]))}</b></summary><dl>{ficha}</dl></details>')
     operacoes = "".join(linhas)
     limites = "".join(f"<li>{escapar(x)}</li>" for x in relatorio["limites"])
+    semanas = "".join(
+        f'<article><span>{escapar(r["semana_iso"])} · {r["operacoes"]} operações</span>'
+        f'<strong>{escapar(dinheiro(r["resultado_liquido"]))}</strong>'
+        f'<p>Previsto: {escapar(dinheiro(r["resultado_previsto"]))}<br>'
+        f'Diferença: {escapar(dinheiro(r["diferenca_liquido"]))}<br>'
+        f'Taxas observadas: {escapar(dinheiro(r["taxas_executadas"]))}</p></article>'
+        for r in relatorio.get("semanas", []))
     _salvar(caminho, f'''<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>TradeLab · Diário do simulador</title>
 <style>*{{box-sizing:border-box}}body{{margin:0;background:#101519;color:#e6ecef;font:15px system-ui,sans-serif}}main{{max-width:1200px;margin:auto;padding:28px}}header{{border-bottom:1px solid #34414a;padding-bottom:20px}}h1{{font-size:26px;margin:12px 0}}p,li{{color:#b4c2ca;line-height:1.6}}.tag{{color:#9fe1bd;font-size:12px;letter-spacing:.12em}}.cards{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}}article{{padding:18px;background:#1a2329;border:1px solid #34414a;border-radius:8px}}article span{{display:block;color:#b4c2ca;font-size:13px}}strong{{display:block;font-size:24px;margin-top:10px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}}details{{border:1px solid #34414a;border-radius:8px;margin:10px 0;background:#151e24}}summary{{cursor:pointer;padding:18px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}}summary:hover{{background:#1a272f}}summary span,dd{{overflow-wrap:anywhere}}dl{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:0;padding:20px;border-top:1px solid #34414a}}dt{{font-size:12px;color:#b4c2ca}}dd{{margin:6px 0 0}}@media(max-width:800px){{.cards{{grid-template-columns:repeat(2,minmax(0,1fr))}}main{{padding:16px}}strong{{font-size:20px}}dl{{grid-template-columns:repeat(2,minmax(0,1fr))}}}}@media(max-width:440px){{.cards,dl{{grid-template-columns:1fr}}}}</style></head>
@@ -206,6 +225,7 @@ def salvar_html(caminho: Path, relatorio: dict) -> None:
 <p>{s["operacoes"]} operações encerradas · {s["acerto_liquido_pct"]:g}% com líquido positivo.
 Conferência descritiva; nenhuma aprovação de estratégia é emitida.</p>
 <p>Gerado em {escapar(relatorio["gerado_em"])} · arquivo {escapar(relatorio["arquivo"])}</p></header><section class="cards">{cards}</section>
+<h2>Comparação semanal</h2><section class="cards">{semanas}</section>
 <h2>Previsto e executado</h2><p>Abra cada operação para conferir preços, stop, alvo e motivos. No desvio em ticks, valor positivo indica execução pior que a referência; negativo indica melhora.</p>
 <section>{operacoes}</section>
 <h2>Como interpretar</h2><ul>{limites}</ul></main></body></html>''')

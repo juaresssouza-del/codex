@@ -1,5 +1,22 @@
 # TradeLab — situação em 10/11/2026
 
+## Atualização 0.5.0 — Codex, 15/11/2026
+
+Tarefas 3 e 5 da seção 6 do `RELATORIO_CODEX.md`: diário do EA WDO corrigido,
+comparação semanal pelo mesmo `diario-b3` e calendário oficial de 186 eventos com
+fonte por data. Instruções em [b3/DIARIO_AUTOMATICO_MT5.md](b3/DIARIO_AUTOMATICO_MT5.md)
+e [b3/calendario_h26/README.md](b3/calendario_h26/README.md).
+
+Não houve estratégia nova, backtest de mercado, alteração de `criterios.toml`, uso
+da reserva ou envio de ordens. A base já continha a rodada 11 e o robô de simulador
+do Claude; os registros e as regras de pesquisa foram preservados. O seletor da rodada
+10 já foi executado e reprovou nas seis medições; as instruções antigas de execução
+mais abaixo são histórico. MT5/MQL5 e PowerShell aguardam compilação/validação no Windows.
+O CSV automático cobre o próprio EA WDO; operações manuais e outros EAs exigem integração.
+Verificação: **200 testes passaram e 4 foram pulados**, tanto em pandas 2.2.3 quanto em
+3.1.1. Os quatro pulados são da amostra real que intercepta a reserva; os casos novos
+usam operações artificiais ou validam somente o calendário factual.
+
 ## Objetivo
 
 Robô de operações que caiba na rotina do Juares (trabalha das 8h às 18h): testar com

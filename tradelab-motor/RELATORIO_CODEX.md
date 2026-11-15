@@ -91,3 +91,47 @@ a R$ 170 mil.
 
 Critério de parada combinado: se o simulador contradisser o teste (resultado negativo depois
 dos custos em 3 a 6 meses), encerrar a busca por robô de day trade em WIN/WDO.
+
+## 7. Entrega Codex 0.5.0 — 15/11/2026 (tarefas 3 e 5)
+
+Esta seção acrescenta a entrega ao relatório de 12/11, sem reescrever seus resultados.
+O branch de base `d1ebf5d` já contém a rodada 11 e o `RoboSimuladorWDO` do Claude.
+Nenhuma hipótese de mercado foi executada pelo Codex nesta entrega. Não houve alteração
+de `criterios.toml` ou dos módulos de estratégias/backtest, nem acesso aos preços da
+reserva, uso de `--usar-reserva`, conexão à conta ou envio de ordens.
+
+**Tarefa 3:** aproveitado o escritor de CSV do EA WDO, corrigindo taxa zero substituída
+indevidamente por custo previsto. A versão 1.02 lê custos observados com indicação de
+sucesso, confere as duas pontas/volumes/lucro do histórico, recusa fechamento externo
+sem referência e evita duplicar IDs. Fuso do servidor obrigatório, datas UTC explícitas
+e relógio de Brasília para as regras de horário. Conta demo BRL vinculada em memória;
+testador histórico recusado. As referências vêm das rotinas anteriores ao envio da ordem.
+
+`diario-b3` usa o mesmo cálculo para o total e a semana ISO em Brasília; slippage não é
+descontado duas vezes. Scripts opcionais geram a comparação semanal no Windows.
+Escopo automático: operações do próprio EA WDO, não trades manuais nem outros robôs.
+Custos sem vínculo à posição e lançamentos posteriores exigem conciliação no extrato.
+A compilação MQL5, validação dos scripts PowerShell e ativação no MT5 **não foram feitas**
+neste ambiente; não houve relatório de uma sessão real do simulador. Detalhes em
+[`b3/DIARIO_AUTOMATICO_MT5.md`](b3/DIARIO_AUTOMATICO_MT5.md).
+
+**Tarefa 5:** [`b3/calendario_h26/`](b3/calendario_h26/README.md), intervalo inclusivo
+11/2021–06/2026 pela data efetiva: 38 decisões regulares FOMC, 55 payroll, 56 IPCA,
+37 Copom, total 186. CSV de eventos, união de 179 datas civis (não 179 pregões), exceções,
+fontes/métodos e manifesto com hashes. As três passagens Copom por feriado foram
+conferidas nos calendários B3. Cancelamento e adiamentos BLS usam datas oficiais.
+
+A hipótese 26 **não foi executada**. O voto FOMC de 22/08/2025 sobre estratégia de longo
+prazo está em exceções; Claude deve registrar a interpretação do escopo antes da execução,
+sem escolhê-la pelo resultado. `HIPOTESES.md` recebeu apenas a nota de entrega dos dados.
+
+**Aprendizado:** o histórico permite medir padrões; a rodada 10 testou uma forma específica
+de aprender com o desempenho recente e ela falhou nas seis medições. Isso não prova que
+toda aprendizagem seja impossível. Repetição visual, entretanto, não demonstra vantagem
+líquida em dados novos. As pistas já observadas não autorizam novas buscas nesses mesmos
+cinco anos; a próxima evidência é a coleta prospectiva, com referências e execução separadas.
+
+**Verificação:** 200 testes passaram e 4 foram pulados em pandas 2.2.3 e 3.1.1.
+Os quatro casos pulados são da amostra real que intercepta a reserva. Os dez casos novos
+conferem operações artificiais e integridade do calendário, não desempenho financeiro.
+Não foram necessários novos geradores pandas de data; os existentes mantêm `as_unit("ms")`.

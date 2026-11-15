@@ -1,0 +1,6 @@
+evento;data_prevista;data_efetiva;situacao;fonte;consultado_em
+PAYROLL;2025-10-03;2025-11-20;adiado;https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm;2026-11-15
+PAYROLL;2025-11-07;;não publicado: referência outubro/2025;https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm;2026-11-15
+PAYROLL;2025-12-05;2025-12-16;adiado;https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm;2026-11-15
+PAYROLL;2026-02-06;2026-02-11;adiado;https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm;2026-11-15
+FOMC;;2025-08-22;"voto sobre estratégia de longo prazo, fora das decisões regulares de juros; escopo da h26 precisa ser registrado antes da execução";https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm;2026-11-15

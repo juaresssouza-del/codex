@@ -27,14 +27,20 @@ Nenhuma das duas foi aprovada no histórico: o simulador é o teste com dados no
 6. OK. No canto do gráfico aparece o chapéu do robô; na aba **Experts** aparece
    "RoboSimuladorWDO pronto".
 
-Para rodar as duas estratégias ao mesmo tempo, use **dois gráficos** e um **Magico diferente**
-em cada um. Na conta Netting da B3 só existe uma posição por contrato: se as duas entrarem
-juntas, as ordens se somam. Por isso a recomendação é **começar só pela aceleração**.
+Use **uma única instância do EA por conta/contrato** nesta versão. Duas instâncias
+podem competir pela mesma posição Netting. Escolha a estratégia antes de iniciar a
+coleta e não troque pela que teve melhor resultado durante a observação.
+
+Na versão 1.02, preencha também **UTCServidorMinutos**, conforme o fuso observado do
+servidor em relação a UTC. O valor padrão bloqueia. O EA exige demo BRL, recusa o testador
+histórico e se desliga se a conta ou o relógio não conferir. Veja a
+[preparação e as limitações do diário](../DIARIO_AUTOMATICO_MT5.md) antes de ativar.
 
 ## Rotina
 
 - O computador fica **ligado com o MT5 aberto** durante o pregão (9h às 18h). Se desligar, o
-  robô para; ao religar, ele retoma a posição aberta que for dele.
+  robô para. Ao religar, **não retoma posição aberta automaticamente**: confira o histórico,
+  a posição e o diário antes de reiniciar. A inicialização recusa posição ou ordem existente.
 - Todo **primeiro dia útil do mês** o WDO vence: troque **SimboloOrdem** para o contrato novo
   (o robô avisa 3 dias antes).
 - Notificações chegam no celular a cada entrada e saída (configure o MetaQuotes ID em
@@ -50,5 +56,8 @@ conversa, ou rode:
 python -m motor diario-b3 --arquivo diario_robo.csv
 ```
 
-Toda semana, com um CSV M5 novo do WDO$N, o motor recalcula as mesmas regras nos mesmos dias
-e compara com o que o robô fez: sinais que deveriam ter ocorrido, atraso e preço de execução.
+O mesmo comando compara referências registradas e fills por semana ISO, em Brasília.
+Taxa zero observada na demo permanece zero e não confirma custo real. Não há recálculo de
+candles nem detecção automática de sinais não executados nesta entrega. A
+[rotina semanal](../DIARIO_AUTOMATICO_MT5.md) inclui scripts opcionais para o Windows.
+Compilação e validação desta versão no MT5 ainda estão pendentes.
